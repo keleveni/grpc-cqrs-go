@@ -15,7 +15,7 @@ type store struct {
 	queries *gen.Queries
 }
 
-func NewCommand(pool *pgxpool.Pool) command.Storage {
+func NewStore(pool *pgxpool.Pool) command.Storage {
 	return &store{queries: gen.New(pool)}
 }
 

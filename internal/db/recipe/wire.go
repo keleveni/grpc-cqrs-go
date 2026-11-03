@@ -5,5 +5,5 @@ import (
 )
 
 var Set = wire.NewSet(
-	NewCommand,
+	NewStore,
 )

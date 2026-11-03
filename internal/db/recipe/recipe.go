@@ -12,16 +12,16 @@ import (
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/db/gen"
 )
 
-// commandStore は recipe の書き込み側 (command.Storage) 実装。
-type commandStore struct {
+// store は recipe の command.Storage 実装。
+type store struct {
 	queries *gen.Queries
 }
 
-func NewCommand(pool *pgxpool.Pool) command.Storage {
-	return &commandStore{queries: gen.New(pool)}
+func NewStore(pool *pgxpool.Pool) command.Storage {
+	return &store{queries: gen.New(pool)}
 }
 
-func (s *commandStore) Create(ctx context.Context, rec *entity.Recipe) error {
+func (s *store) Create(ctx context.Context, rec *entity.Recipe) error {
 	return s.queries.CreateRecipe(ctx, gen.CreateRecipeParams{
 		ID:          rec.ID(),
 		UserID:      rec.UserID(),
@@ -31,7 +31,7 @@ func (s *commandStore) Create(ctx context.Context, rec *entity.Recipe) error {
 	})
 }
 
-func (s *commandStore) Get(ctx context.Context, id uuid.UUID) (*entity.Recipe, error) {
+func (s *store) Get(ctx context.Context, id uuid.UUID) (*entity.Recipe, error) {
 	row, err := s.queries.GetRecipe(ctx, id)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, entity.ErrRecipeNotFound
@@ -54,7 +54,7 @@ func (s *commandStore) Get(ctx context.Context, id uuid.UUID) (*entity.Recipe, e
 	), nil
 }
 
-func (s *commandStore) Update(ctx context.Context, rec *entity.Recipe) error {
+func (s *store) Update(ctx context.Context, rec *entity.Recipe) error {
 	return s.queries.UpdateRecipe(ctx, gen.UpdateRecipeParams{
 		ID:          rec.ID(),
 		Title:       rec.Title(),

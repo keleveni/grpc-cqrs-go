@@ -32,13 +32,13 @@ func initializeServices(ctx context.Context, dsn string) (*services, func(), err
 	if err != nil {
 		return nil, nil, err
 	}
-	storage := recipe.NewCommand(pool)
+	storage := recipe.NewStore(pool)
 	authzStorage := tuple.NewStore(pool)
 	checker := authz.NewChecker(authzStorage)
 	commandCommand := command.NewCommand(storage, authzStorage, checker)
 	queryQuery := query.NewQuery(pool, checker)
 	recipeServiceServer := recipe2.NewHandler(commandCommand, queryQuery)
-	commandStorage := user.NewCommand(pool)
+	commandStorage := user.NewStore(pool)
 	command3 := command2.NewCommand(commandStorage)
 	userServiceServer := user2.NewHandler(command3)
 	shareCommand := share.NewCommand(authzStorage, checker)
