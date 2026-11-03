@@ -40,6 +40,7 @@ Feature-first + CQRS パターンを採用し、ドメイン（フィーチャ�
 │   │   │   ├── query/              #   読み取り (GetRecipe)
 │   │   │   ├── entity/             #   エンティティ (Recipe, Visibility)
 │   │   │   ├── handler.go          #   gRPC ハンドラー
+│   │   │   ├── convert.go          #   pb ⇔ ドメインの変換 (Visibility)
 │   │   │   └── wire.go
 │   │   ├── user/                   # User ドメイン
 │   │   │   ├── command/            #   書き込み (CreateUser)

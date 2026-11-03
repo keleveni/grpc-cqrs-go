@@ -3,7 +3,6 @@ package recipe
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/app/recipe/command"
@@ -103,18 +102,13 @@ func (h *handler) GetRecipe(
 		return nil, err
 	}
 
-	visibility, ok := domainVisibilityToPb[result.Visibility]
-	if !ok {
-		return nil, errors.New("visibility has no protobuf representation")
-	}
-
 	return &pb.GetRecipeResponse{
 		Recipe: &pb.Recipe{
 			Id:          result.ID,
 			UserId:      result.User.ID,
 			Title:       result.Title,
 			Description: result.Description,
-			Visibility:  visibility,
+			Visibility:  visibilityToPb(result.Visibility),
 			CreatedAt:   timestamppb.New(result.CreatedAt),
 			UpdatedAt:   timestamppb.New(result.UpdatedAt),
 		},
@@ -135,9 +129,9 @@ func (h *handler) ChangeVisibility(
 		return nil, grpcerr.WithStatus(err, codes.InvalidArgument, err.Error())
 	}
 
-	visibility, ok := pbToDomainVisibility[in.GetVisibility()]
-	if !ok {
-		return nil, grpcerr.WithStatus(entity.ErrInvalidVisibility, codes.InvalidArgument, msgInvalidVisibility)
+	visibility, err := visibilityFromPb(in.GetVisibility())
+	if err != nil {
+		return nil, grpcerr.WithStatus(err, codes.InvalidArgument, msgInvalidVisibility)
 	}
 
 	userID, err := identity.UserID(ctx)
@@ -151,23 +145,3 @@ func (h *handler) ChangeVisibility(
 
 	return &pb.ChangeVisibilityResponse{Success: true}, nil
 }
-
-var pbToDomainVisibility = map[pb.Visibility]entity.Visibility{
-	pb.Visibility_VISIBILITY_PUBLIC:     entity.VisibilityPublic,
-	pb.Visibility_VISIBILITY_PRIVATE:    entity.VisibilityPrivate,
-	pb.Visibility_VISIBILITY_RESTRICTED: entity.VisibilityRestricted,
-}
-
-var domainVisibilityToPb = func() map[entity.Visibility]pb.Visibility {
-	out := make(map[entity.Visibility]pb.Visibility, len(pbToDomainVisibility))
-
-	for k, v := range pbToDomainVisibility {
-		if dup, ok := out[v]; ok {
-			panic(fmt.Sprintf("invert: duplicate value %v (%v, %v)", v, dup, k))
-		}
-
-		out[v] = k
-	}
-
-	return out
-}()
