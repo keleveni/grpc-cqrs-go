@@ -73,6 +73,9 @@ func (h *handler) UpdateRecipe(
 	}
 
 	if err := h.command.UpdateRecipe(ctx, userID, recipeID, in.GetTitle(), in.GetDescription()); err != nil {
+		if errors.Is(err, entity.ErrRecipeNotFound) {
+			return nil, grpcerr.WithStatus(err, codes.NotFound, msgRecipeNotFound)
+		}
 		return nil, err
 	}
 
@@ -139,6 +142,9 @@ func (h *handler) ChangeVisibility(
 	}
 
 	if err := h.command.ChangeVisibility(ctx, userID, id, visibility); err != nil {
+		if errors.Is(err, entity.ErrRecipeNotFound) {
+			return nil, grpcerr.WithStatus(err, codes.NotFound, msgRecipeNotFound)
+		}
 		return nil, err
 	}
 
