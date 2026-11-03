@@ -2,9 +2,9 @@ syntax = "proto3";
 
 package share.v1;
 
-option go_package = "github.com/kodaikumatani/grpc-cqrs-go/pkg/pb/share/v1;sharev1";
-
 import "buf/validate/validate.proto";
+
+option go_package = "github.com/kodaikumatani/grpc-cqrs-go/pkg/pb/share/v1;sharev1";
 
 service ShareService {
   rpc ShareRecipe(ShareRecipeRequest) returns (ShareRecipeResponse);

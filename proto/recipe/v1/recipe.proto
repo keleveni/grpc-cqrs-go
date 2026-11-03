@@ -2,10 +2,10 @@ syntax = "proto3";
 
 package recipe.v1;
 
-option go_package = "github.com/kodaikumatani/grpc-cqrs-go/pkg/pb/recipe/v1;recipev1";
-
 import "buf/validate/validate.proto";
 import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/kodaikumatani/grpc-cqrs-go/pkg/pb/recipe/v1;recipev1";
 
 service RecipeService {
   rpc CreateRecipe(CreateRecipeRequest) returns (CreateRecipeResponse);
@@ -36,7 +36,9 @@ message CreateRecipeRequest {
   string description = 3 [(buf.validate.field).required = true];
 }
 
-message CreateRecipeResponse { string recipe_id = 1; }
+message CreateRecipeResponse {
+  string recipe_id = 1;
+}
 
 message GetRecipeRequest {
   string id = 1 [(buf.validate.field).string.uuid = true];
@@ -59,7 +61,9 @@ message UpdateRecipeRequest {
   string description = 3 [(buf.validate.field).required = true];
 }
 
-message UpdateRecipeResponse { bool success = 1; }
+message UpdateRecipeResponse {
+  bool success = 1;
+}
 
 message ChangeVisibilityRequest {
   string id = 1 [(buf.validate.field).string.uuid = true];
@@ -69,4 +73,6 @@ message ChangeVisibilityRequest {
   ];
 }
 
-message ChangeVisibilityResponse { bool success = 1; }
+message ChangeVisibilityResponse {
+  bool success = 1;
+}
