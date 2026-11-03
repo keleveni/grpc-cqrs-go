@@ -51,6 +51,6 @@ func (r *Recipe) ChangeVisibility(v Visibility) {
 }
 
 // CanBeEditedBy は userID がこのレシピを編集できるかを判定する（Visibility.CanEdit に委ねる）。
-func (r *Recipe) CanBeEditedBy(ctx context.Context, rc RelationChecker, userID string) error {
-	return r.visibility.CanEdit(ctx, rc, userID, r.id.String())
+func (r *Recipe) CanBeEditedBy(ctx context.Context, rels Relations, userID string) error {
+	return r.visibility.CanEdit(ctx, rels, userID, r.id.String())
 }

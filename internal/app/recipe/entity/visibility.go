@@ -34,16 +34,16 @@ func (v Visibility) String() string { return v.value }
 //   - private:    owner だけが閲覧できる
 //   - restricted: view 権限を持つユーザーだけが閲覧できる
 //
-// owner は tuple で管理していて複数いてよいので、作成者との比較ではなく RelationChecker に問い合わせる。
-// 権限がなければ RelationChecker のエラーをそのまま返し、未知の公開範囲は ErrInvalidVisibility を返す。
-func (v Visibility) CanView(ctx context.Context, rc RelationChecker, userID, recipeID string) error {
+// owner は tuple で管理していて複数いてよいので、作成者との比較ではなく Relations に問い合わせる。
+// 権限がなければ Relations のエラーをそのまま返し、未知の公開範囲は ErrInvalidVisibility を返す。
+func (v Visibility) CanView(ctx context.Context, rels Relations, userID, recipeID string) error {
 	switch v {
 	case VisibilityPublic:
 		return nil
 	case VisibilityPrivate:
-		return rc.IsRecipeOwner(ctx, userID, recipeID)
+		return rels.IsRecipeOwner(ctx, userID, recipeID)
 	case VisibilityRestricted:
-		return rc.CanViewRecipe(ctx, userID, recipeID)
+		return rels.CanViewRecipe(ctx, userID, recipeID)
 	default:
 		return ErrInvalidVisibility
 	}
@@ -53,21 +53,21 @@ func (v Visibility) CanView(ctx context.Context, rc RelationChecker, userID, rec
 //   - private:            owner だけが編集できる（閲覧と同じく owner 以外には閉じる）
 //   - public / restricted: 編集権限（editor / owner）を持つユーザーが編集できる
 //
-// 権限がなければ RelationChecker のエラーをそのまま返し、未知の公開範囲は ErrInvalidVisibility を返す。
-func (v Visibility) CanEdit(ctx context.Context, rc RelationChecker, userID, recipeID string) error {
+// 権限がなければ Relations のエラーをそのまま返し、未知の公開範囲は ErrInvalidVisibility を返す。
+func (v Visibility) CanEdit(ctx context.Context, rels Relations, userID, recipeID string) error {
 	switch v {
 	case VisibilityPrivate:
-		return rc.IsRecipeOwner(ctx, userID, recipeID)
+		return rels.IsRecipeOwner(ctx, userID, recipeID)
 	case VisibilityPublic, VisibilityRestricted:
-		return rc.CanEditRecipe(ctx, userID, recipeID)
+		return rels.CanEditRecipe(ctx, userID, recipeID)
 	default:
 		return ErrInvalidVisibility
 	}
 }
 
-// RelationChecker は閲覧・編集権限の判定に必要な、ユーザーとレシピの関係の問い合わせ。
+// Relations は閲覧・編集権限の判定に必要な、ユーザーとレシピの関係の問い合わせ。
 // authz.Checker がこれを満たす（entity は authz に依存しない）。
-type RelationChecker interface {
+type Relations interface {
 	// IsRecipeOwner は userID がレシピの owner かを判定する。
 	IsRecipeOwner(ctx context.Context, userID, recipeID string) error
 	// CanViewRecipe は userID がレシピの view 権限（viewer / editor / owner）を持つかを判定する。
