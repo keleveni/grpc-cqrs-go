@@ -14,6 +14,10 @@ func NewCommand(storage Storage) *Command {
 	return &Command{storage: storage}
 }
 
+// CreateUser は IdP の sub を id とするユーザーを作成する。
+//
+// 返しうるエラー:
+//   - entity.ErrAlreadyExists: 同じ id のユーザーが既に存在する
 func (c *Command) CreateUser(
 	ctx context.Context,
 	id string,

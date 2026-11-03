@@ -177,6 +177,7 @@ Relationship-Based Access Control を採用。
 - ハンドラは既知エラーを `grpcerr.WithStatus(cause, code, msg)` で変換（client には安全な status、ログには cause を保持）
 - 未変換の生エラーは `ErrorHandlingUnaryInterceptor` が汎用 `Internal` + cause ログに（**内部エラーを client に漏らさない**）
 - 横断的な `PermissionDenied`（`authz.ErrPermissionDenied`）と `Unauthenticated`（`identity.ErrUnauthenticated`）は interceptor で集約（handler は生のエラーを返すだけ）
+- command / query のメソッドには「返しうるエラー」をドキュメントコメントで書く（handler から LSP のホバーで確認できる）
 - DB 境界で低レベルエラーを翻訳（`23505` → AlreadyExists / `pgx.ErrNoRows` → NotFound）
 - **ログレベルは gRPC コードで決める**（`levelForCode`）: 想定内のクライアントエラー
   （`InvalidArgument` / `PermissionDenied` / `AlreadyExists` / `Unauthenticated`）は `info`、

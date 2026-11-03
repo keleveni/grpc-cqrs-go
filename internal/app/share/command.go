@@ -22,6 +22,11 @@ func NewCommand(
 	}
 }
 
+// ShareRecipe はレシピを targetUserID に relation で共有する。共有できるのは owner だけ。
+//
+// 返しうるエラー:
+//   - authz.ErrPermissionDenied: 共有権限がない
+//   - authz.ErrAlreadyExists: 同じ relation で既に共有済み
 func (u *Command) ShareRecipe(
 	ctx context.Context,
 	userID,

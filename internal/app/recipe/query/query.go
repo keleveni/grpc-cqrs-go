@@ -22,6 +22,11 @@ func NewQuery(
 	}
 }
 
+// GetRecipe はレシピと作成者の情報を、公開範囲に応じた閲覧権限を確認したうえで返す。
+//
+// 返しうるエラー:
+//   - entity.ErrRecipeNotFound: レシピが存在しない
+//   - authz.ErrPermissionDenied: 公開範囲に対して閲覧権限がない
 func (q *Query) GetRecipe(
 	ctx context.Context,
 	userID string,

@@ -26,6 +26,9 @@ func NewCommand(
 	}
 }
 
+// CreateRecipe は userID を owner とする private なレシピを作成する。
+//
+// ドメインのエラーは返さない（永続化の失敗は想定外の内部エラー）。
 func (u *Command) CreateRecipe(
 	ctx context.Context,
 	userID string,
@@ -59,6 +62,11 @@ func (u *Command) CreateRecipe(
 	return recipe, nil
 }
 
+// UpdateRecipe はレシピの内容（タイトルと説明）を編集する。
+//
+// 返しうるエラー:
+//   - authz.ErrPermissionDenied: 編集権限がない（レシピが存在しない場合もこちらになる）
+//   - entity.ErrRecipeNotFound: 権限はあるがレシピが存在しない
 func (u *Command) UpdateRecipe(
 	ctx context.Context,
 	userID string,
@@ -84,6 +92,11 @@ func (u *Command) UpdateRecipe(
 	return nil
 }
 
+// ChangeVisibility はレシピの公開範囲を変更する。owner だけが変更できる。
+//
+// 返しうるエラー:
+//   - authz.ErrPermissionDenied: owner ではない（レシピが存在しない場合もこちらになる）
+//   - entity.ErrRecipeNotFound: owner の tuple はあるがレシピが存在しない
 func (u *Command) ChangeVisibility(
 	ctx context.Context,
 	userID string,
