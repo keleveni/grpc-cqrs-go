@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	RecipeService_CreateRecipe_FullMethodName     = "/recipe.v1.RecipeService/CreateRecipe"
 	RecipeService_GetRecipe_FullMethodName        = "/recipe.v1.RecipeService/GetRecipe"
+	RecipeService_ListRecipes_FullMethodName      = "/recipe.v1.RecipeService/ListRecipes"
 	RecipeService_UpdateRecipe_FullMethodName     = "/recipe.v1.RecipeService/UpdateRecipe"
 	RecipeService_ChangeVisibility_FullMethodName = "/recipe.v1.RecipeService/ChangeVisibility"
 )
@@ -31,6 +32,8 @@ const (
 type RecipeServiceClient interface {
 	CreateRecipe(ctx context.Context, in *CreateRecipeRequest, opts ...grpc.CallOption) (*CreateRecipeResponse, error)
 	GetRecipe(ctx context.Context, in *GetRecipeRequest, opts ...grpc.CallOption) (*GetRecipeResponse, error)
+	// 閲覧できるレシピ（public / manage 権限のある private / view 権限のある restricted）を新しい順に返す。
+	ListRecipes(ctx context.Context, in *ListRecipesRequest, opts ...grpc.CallOption) (*ListRecipesResponse, error)
 	UpdateRecipe(ctx context.Context, in *UpdateRecipeRequest, opts ...grpc.CallOption) (*UpdateRecipeResponse, error)
 	ChangeVisibility(ctx context.Context, in *ChangeVisibilityRequest, opts ...grpc.CallOption) (*ChangeVisibilityResponse, error)
 }
@@ -63,6 +66,16 @@ func (c *recipeServiceClient) GetRecipe(ctx context.Context, in *GetRecipeReques
 	return out, nil
 }
 
+func (c *recipeServiceClient) ListRecipes(ctx context.Context, in *ListRecipesRequest, opts ...grpc.CallOption) (*ListRecipesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListRecipesResponse)
+	err := c.cc.Invoke(ctx, RecipeService_ListRecipes_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *recipeServiceClient) UpdateRecipe(ctx context.Context, in *UpdateRecipeRequest, opts ...grpc.CallOption) (*UpdateRecipeResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(UpdateRecipeResponse)
@@ -89,6 +102,8 @@ func (c *recipeServiceClient) ChangeVisibility(ctx context.Context, in *ChangeVi
 type RecipeServiceServer interface {
 	CreateRecipe(context.Context, *CreateRecipeRequest) (*CreateRecipeResponse, error)
 	GetRecipe(context.Context, *GetRecipeRequest) (*GetRecipeResponse, error)
+	// 閲覧できるレシピ（public / manage 権限のある private / view 権限のある restricted）を新しい順に返す。
+	ListRecipes(context.Context, *ListRecipesRequest) (*ListRecipesResponse, error)
 	UpdateRecipe(context.Context, *UpdateRecipeRequest) (*UpdateRecipeResponse, error)
 	ChangeVisibility(context.Context, *ChangeVisibilityRequest) (*ChangeVisibilityResponse, error)
 	mustEmbedUnimplementedRecipeServiceServer()
@@ -106,6 +121,9 @@ func (UnimplementedRecipeServiceServer) CreateRecipe(context.Context, *CreateRec
 }
 func (UnimplementedRecipeServiceServer) GetRecipe(context.Context, *GetRecipeRequest) (*GetRecipeResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetRecipe not implemented")
+}
+func (UnimplementedRecipeServiceServer) ListRecipes(context.Context, *ListRecipesRequest) (*ListRecipesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListRecipes not implemented")
 }
 func (UnimplementedRecipeServiceServer) UpdateRecipe(context.Context, *UpdateRecipeRequest) (*UpdateRecipeResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpdateRecipe not implemented")
@@ -170,6 +188,24 @@ func _RecipeService_GetRecipe_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RecipeService_ListRecipes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListRecipesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RecipeServiceServer).ListRecipes(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RecipeService_ListRecipes_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RecipeServiceServer).ListRecipes(ctx, req.(*ListRecipesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _RecipeService_UpdateRecipe_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(UpdateRecipeRequest)
 	if err := dec(in); err != nil {
@@ -220,6 +256,10 @@ var RecipeService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetRecipe",
 			Handler:    _RecipeService_GetRecipe_Handler,
+		},
+		{
+			MethodName: "ListRecipes",
+			Handler:    _RecipeService_ListRecipes_Handler,
 		},
 		{
 			MethodName: "UpdateRecipe",

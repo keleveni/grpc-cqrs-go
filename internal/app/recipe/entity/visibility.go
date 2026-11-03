@@ -35,6 +35,8 @@ func (v Visibility) String() string { return v.value }
 //   - restricted: view 権限を持つユーザーだけが閲覧できる
 //
 // どの relation（owner 等）がどの権限を与えるかは authz が決める。entity は権限だけを問い合わせる。
+// 一覧では同じ条件を SQL（database/queries/recipe.sql の ListViewableRecipes）で絞り込むので、
+// ルールを変えるときは両方直す。
 // 権限がなければ Relations のエラーをそのまま返し、未知の公開範囲は ErrInvalidVisibility を返す。
 func (v Visibility) CanView(ctx context.Context, rels Relations, userID, recipeID string) error {
 	switch v {

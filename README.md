@@ -38,7 +38,7 @@ Feature-first + CQRS パターンを採用し、ドメイン（フィーチャ�
 │   ├── app/                        # アプリケーション層（フィーチャ単位）
 │   │   ├── recipe/                 # Recipe ドメイン
 │   │   │   ├── command/            #   書き込み (CreateRecipe, UpdateRecipe, ChangeVisibility)
-│   │   │   ├── query/              #   読み取り (GetRecipe)
+│   │   │   ├── query/              #   読み取り (GetRecipe, ListRecipes)
 │   │   │   ├── entity/             #   エンティティ (Recipe, Visibility)
 │   │   │   ├── handler.go          #   gRPC ハンドラー
 │   │   │   └── wire.go
@@ -177,6 +177,7 @@ Relationship-Based Access Control を採用。
 - entity は relation（owner 等）を直接見ず、権限（view / edit / manage）だけを authz に問い合わせる。どの relation がどの権限を与えるかは authz の `permissionRelations` だけが決める（manage = owner）
 - 公開範囲は tuple（関係）ではなくレシピの属性。認可は「tuple による関係（ReBAC）」と「公開範囲という属性」の組み合わせで、組み合わせる場所は値オブジェクト `Visibility` のメソッド（読み取り側はエンティティを作らずに判定できる）
 - authz は tuple による relation の判定だけを持ち、機能（`internal/app`）には依存しない
+- 一覧（ListRecipes）は 1 件ずつ判定できないので、`Visibility.CanView` と同じ条件を SQL（`ListViewableRecipes`）で書いて絞り込む。どの relation が権限を与えるかは `authz.RelationsGranting` から渡し、SQL には書かない（公開範囲のルールを変えるときは `CanView` と SQL の両方を直す）
 
 ### エラー処理
 
@@ -219,6 +220,7 @@ NotFound の変換漏れがあった）。RPC ごとに「どの状況でどの�
   - GetRecipe: private は owner だけ / restricted は共有された相手だけ / 存在しなければ NotFound
   - UpdateRecipe: private は owner だけ、それ以外は editor 以上 / 存在しなければ NotFound
   - ChangeVisibility: owner だけ / UNSPECIFIED は InvalidArgument
+  - ListRecipes: 閲覧できるレシピだけが新しい順に返る / ページをまたいで漏れや重複がない / 不正な page_token は InvalidArgument
   - ShareRecipe: owner だけ / 共有済みなら AlreadyExists
   - CreateUser: 同じ sub なら AlreadyExists
   - 全 RPC: 認証されていなければ Unauthenticated、想定外のエラーは Internal で中身を隠す
@@ -350,6 +352,27 @@ grpcurl -plaintext -H "x-endpoint-api-userinfo: $INFO" -d '{
 }
 ```
 （`userId` / `user.id` は IdP の `sub`。recipe の `id` は UUID）
+
+#### ListRecipes（要認証）
+
+閲覧できるレシピ（GetRecipe で見られるもの）を新しい順に返します。`page_size` は省略（0）で 20 件、最大 100 件。
+続きは、レスポンスの `nextPageToken` を `page_token` に渡して取得します（最後のページでは空）。
+
+```bash
+grpcurl -plaintext -H "x-endpoint-api-userinfo: $INFO" -d '{
+  "page_size": 20
+}' localhost:50051 recipe.v1.RecipeService/ListRecipes
+```
+
+レスポンス:
+```json
+{
+  "recipes": [
+    { "id": "550e8400-...", "userId": "101128207731415003767", "title": "カレーライス", "visibility": "VISIBILITY_PUBLIC", "...": "..." }
+  ],
+  "nextPageToken": "AZ..."
+}
+```
 
 ### ShareService
 

@@ -3,6 +3,7 @@ package recipe
 import (
 	"errors"
 	"testing"
+	"uuid"
 
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/app/recipe/entity"
 	pb "github.com/kodaikumatani/grpc-cqrs-go/pkg/pb/recipe/v1"
@@ -40,4 +41,36 @@ func TestVisibilityToPb_Unknown(t *testing.T) {
 	if got := visibilityToPb(entity.Visibility{}); got != pb.Visibility_VISIBILITY_UNSPECIFIED {
 		t.Errorf("want UNSPECIFIED, got %v", got)
 	}
+}
+
+func TestPageToken(t *testing.T) {
+	t.Run("次のページの起点は往復できる", func(t *testing.T) {
+		next := uuid.NewV7()
+
+		got, err := decodePageToken(encodePageToken(next))
+		if err != nil || got != next {
+			t.Fatalf("round trip: got (%v, %v), want %v", got, err, next)
+		}
+	})
+
+	t.Run("次のページがなければ空のトークン", func(t *testing.T) {
+		if got := encodePageToken(uuid.Nil()); got != "" {
+			t.Fatalf("want empty token, got %q", got)
+		}
+	})
+
+	t.Run("空のトークンは最初のページ", func(t *testing.T) {
+		got, err := decodePageToken("")
+		if err != nil || got != uuid.Max() {
+			t.Fatalf("got (%v, %v), want uuid.Max()", got, err)
+		}
+	})
+
+	t.Run("不正なトークンはエラー", func(t *testing.T) {
+		for _, token := range []string{"!!!", "YWJj"} { // base64 でない / 16 バイトでない
+			if _, err := decodePageToken(token); !errors.Is(err, errInvalidPageToken) {
+				t.Errorf("%q: want errInvalidPageToken, got %v", token, err)
+			}
+		}
+	})
 }

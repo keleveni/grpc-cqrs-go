@@ -10,6 +10,8 @@ option go_package = "github.com/kodaikumatani/grpc-cqrs-go/pkg/pb/recipe/v1;reci
 service RecipeService {
   rpc CreateRecipe(CreateRecipeRequest) returns (CreateRecipeResponse);
   rpc GetRecipe(GetRecipeRequest) returns (GetRecipeResponse);
+  // 閲覧できるレシピ（public / manage 権限のある private / view 権限のある restricted）を新しい順に返す。
+  rpc ListRecipes(ListRecipesRequest) returns (ListRecipesResponse);
   rpc UpdateRecipe(UpdateRecipeRequest) returns (UpdateRecipeResponse);
   rpc ChangeVisibility(ChangeVisibilityRequest) returns (ChangeVisibilityResponse);
 }
@@ -53,6 +55,22 @@ message User {
   string id = 1;
   string name = 2;
   string email = 3;
+}
+
+message ListRecipesRequest {
+  // 1 ページの最大件数。0 なら 20 件。
+  int32 page_size = 1 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 100
+  }];
+  // 前のレスポンスの next_page_token。最初のページは空。
+  string page_token = 2;
+}
+
+message ListRecipesResponse {
+  repeated Recipe recipes = 1;
+  // 次のページを取得するためのトークン。次のページがなければ空。
+  string next_page_token = 2;
 }
 
 message UpdateRecipeRequest {

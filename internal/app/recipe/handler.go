@@ -2,6 +2,7 @@ package recipe
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"uuid"
 
@@ -18,7 +19,13 @@ import (
 const (
 	msgInvalidVisibility = "invalid visibility"
 	msgRecipeNotFound    = "recipe not found"
+	msgInvalidPageToken  = "invalid page token"
 )
+
+// defaultPageSize は ListRecipes で page_size が 0 のときの件数（上限は proto のルールで 100）。
+const defaultPageSize = 20
+
+var errInvalidPageToken = errors.New("invalid page token")
 
 type handler struct {
 	pb.UnimplementedRecipeServiceServer
@@ -122,6 +129,49 @@ func (h *handler) GetRecipe(
 	}, nil
 }
 
+func (h *handler) ListRecipes(
+	ctx context.Context,
+	in *pb.ListRecipesRequest,
+) (*pb.ListRecipesResponse, error) {
+	before, err := decodePageToken(in.GetPageToken())
+	if err != nil {
+		return nil, grpcerr.WithStatus(err, codes.InvalidArgument, msgInvalidPageToken)
+	}
+
+	pageSize := in.GetPageSize()
+	if pageSize == 0 {
+		pageSize = defaultPageSize
+	}
+
+	userID, err := identity.UserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := h.query.ListRecipes(ctx, userID, before, pageSize)
+	if err != nil {
+		return nil, err
+	}
+
+	recipes := make([]*pb.Recipe, 0, len(result.Recipes))
+	for _, r := range result.Recipes {
+		recipes = append(recipes, &pb.Recipe{
+			Id:          r.ID,
+			UserId:      r.UserID,
+			Title:       r.Title,
+			Description: r.Description,
+			Visibility:  visibilityToPb(r.Visibility),
+			CreatedAt:   timestamppb.New(r.CreatedAt),
+			UpdatedAt:   timestamppb.New(r.UpdatedAt),
+		})
+	}
+
+	return &pb.ListRecipesResponse{
+		Recipes:       recipes,
+		NextPageToken: encodePageToken(result.Next),
+	}, nil
+}
+
 func (h *handler) ChangeVisibility(
 	ctx context.Context,
 	in *pb.ChangeVisibilityRequest,
@@ -179,4 +229,27 @@ func visibilityToPb(v entity.Visibility) pb.Visibility {
 	default:
 		return pb.Visibility_VISIBILITY_UNSPECIFIED
 	}
+}
+
+// encodePageToken は次のページの起点をクライアント向けの不透明なトークンにする。
+// 次のページがなければ（uuid.Nil()）空文字を返す。
+func encodePageToken(next uuid.UUID) string {
+	if next == uuid.Nil() {
+		return ""
+	}
+	return base64.RawURLEncoding.EncodeToString(next[:])
+}
+
+// decodePageToken はトークンを次のページの起点に戻す。空なら最初のページ（uuid.Max()）。
+func decodePageToken(token string) (uuid.UUID, error) {
+	if token == "" {
+		return uuid.Max(), nil
+	}
+
+	raw, err := base64.RawURLEncoding.DecodeString(token)
+	if err != nil || len(raw) != len(uuid.UUID{}) {
+		return uuid.UUID{}, errInvalidPageToken
+	}
+
+	return uuid.UUID(raw), nil
 }

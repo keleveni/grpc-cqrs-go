@@ -70,3 +70,67 @@ func (q *Query) GetRecipe(
 		UserEmail:   row.UserEmail,
 	}, nil
 }
+
+// ListRecipes は userID が閲覧できるレシピを、before より古いものから新しい順に最大 limit 件返す。
+// 最初のページは before に uuid.Max() を渡す。
+//
+// 閲覧できるかの条件は SQL（ListViewableRecipes）で絞り込む。条件は entity.Visibility.CanView と同じで、
+// どの relation が manage / view 権限を与えるかは authz から渡す。
+//
+// ドメインのエラーは返さない（永続化の失敗は想定外の内部エラー）。
+func (q *Query) ListRecipes(
+	ctx context.Context,
+	userID string,
+	before uuid.UUID,
+	limit int32,
+) (*ListRecipesResult, error) {
+	// 次のページがあるかを知るために 1 件多く取る
+	rows, err := q.queries.ListViewableRecipes(ctx, gen.ListViewableRecipesParams{
+		Before:          before,
+		UserID:          userID,
+		ManageRelations: relationNames(authz.PermManage),
+		ViewRelations:   relationNames(authz.PermView),
+		PageLimit:       limit + 1,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	result := &ListRecipesResult{Next: uuid.Nil()}
+	if len(rows) > int(limit) {
+		rows = rows[:limit]
+		result.Next = rows[len(rows)-1].ID
+	}
+
+	result.Recipes = make([]ListRecipesItem, 0, len(rows))
+	for _, row := range rows {
+		visibility, err := entity.NewVisibility(string(row.Visibility))
+		if err != nil {
+			return nil, err
+		}
+
+		result.Recipes = append(result.Recipes, ListRecipesItem{
+			ID:          row.ID.String(),
+			UserID:      row.UserID,
+			Title:       row.Title,
+			Description: row.Description,
+			Visibility:  visibility,
+			CreatedAt:   row.CreatedAt,
+			UpdatedAt:   row.UpdatedAt,
+		})
+	}
+
+	return result, nil
+}
+
+// relationNames は perm を与える relation を SQL に渡せる文字列にする。
+func relationNames(perm authz.Permission) []string {
+	relations := authz.RelationsGranting(authz.ObjectRecipe, perm)
+
+	names := make([]string, 0, len(relations))
+	for _, r := range relations {
+		names = append(names, r.String())
+	}
+
+	return names
+}
