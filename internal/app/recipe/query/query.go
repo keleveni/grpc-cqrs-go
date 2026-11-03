@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/kodaikumatani/grpc-cqrs-go/internal/app/recipe/entity"
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/authz"
 )
 
@@ -33,19 +32,8 @@ func (q *Query) Get(
 		return nil, err
 	}
 
-	switch result.Visibility {
-	case entity.VisibilityPublic:
-		// 誰でも可（素通り）
-	case entity.VisibilityPrivate:
-		if err := q.checker.IsRecipeOwner(ctx, userID, id.String()); err != nil {
-			return nil, err
-		}
-	case entity.VisibilityRestricted:
-		if err := q.checker.CanViewRecipe(ctx, userID, id.String()); err != nil {
-			return nil, err
-		}
-	default:
-		return nil, authz.ErrPermissionDenied
+	if err := q.checker.CanViewRecipe(ctx, userID, id.String(), result.Visibility); err != nil {
+		return nil, err
 	}
 
 	return result, nil

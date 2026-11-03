@@ -137,7 +137,7 @@ Relationship-Based Access Control を採用。
 - **Relation**: `owner ⊃ editor ⊃ viewer`（owner は複数可）
 - **Tuple ストア**: `relation_tuples` テーブルで「誰が・何に・どの relation か」を管理。subject は不透明な文字列として扱い、ULID かどうかは authz の関心外
 - **Permission**: `map[ObjectType]map[Permission][]Relation` で action → 許可 relation を定義
-- view の認可ゲートは app 層で分岐、edit/share/公開範囲変更は owner/editor を tuple で判定
+- view の認可は `authz.Checker.CanViewRecipe` が Visibility に応じて判定、edit/share/公開範囲変更は owner/editor を tuple で判定
 
 ### エラー処理
 
