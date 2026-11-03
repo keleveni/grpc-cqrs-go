@@ -17,7 +17,7 @@ func TestVisibilityRoundTrip(t *testing.T) {
 			continue
 		}
 
-		d, err := visibilityFromPb(v)
+		d, err := entity.NewVisibility(visibilityFromPb(v))
 		if err != nil {
 			t.Errorf("%v: want domain value, got %v", v, err)
 			continue
@@ -30,7 +30,7 @@ func TestVisibilityRoundTrip(t *testing.T) {
 
 func TestVisibilityFromPb_Invalid(t *testing.T) {
 	for _, v := range []pb.Visibility{pb.Visibility_VISIBILITY_UNSPECIFIED, pb.Visibility(99)} {
-		if _, err := visibilityFromPb(v); !errors.Is(err, entity.ErrInvalidVisibility) {
+		if _, err := entity.NewVisibility(visibilityFromPb(v)); !errors.Is(err, entity.ErrInvalidVisibility) {
 			t.Errorf("%v: want ErrInvalidVisibility, got %v", v, err)
 		}
 	}

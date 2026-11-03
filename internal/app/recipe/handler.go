@@ -182,38 +182,37 @@ func (h *handler) ChangeVisibility(
 		return nil, grpcerr.WithStatus(err, codes.InvalidArgument, err.Error())
 	}
 
-	visibility, err := visibilityFromPb(in.GetVisibility())
-	if err != nil {
-		return nil, grpcerr.WithStatus(err, codes.InvalidArgument, msgInvalidVisibility)
-	}
-
 	userID, err := identity.UserID(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := h.command.ChangeVisibility(ctx, userID, id, visibility); err != nil {
-		if errors.Is(err, entity.ErrRecipeNotFound) {
+	if err := h.command.ChangeVisibility(ctx, userID, id, visibilityFromPb(in.GetVisibility())); err != nil {
+		switch {
+		case errors.Is(err, entity.ErrInvalidVisibility):
+			return nil, grpcerr.WithStatus(err, codes.InvalidArgument, msgInvalidVisibility)
+		case errors.Is(err, entity.ErrRecipeNotFound):
 			return nil, grpcerr.WithStatus(err, codes.NotFound, msgRecipeNotFound)
+		default:
+			return nil, err
 		}
-		return nil, err
 	}
 
 	return &pb.ChangeVisibilityResponse{Success: true}, nil
 }
 
-// visibilityFromPb は pb の Visibility をドメインの Visibility に変換する。
-// UNSPECIFIED や未定義の値は ErrInvalidVisibility を返す。
-func visibilityFromPb(v pb.Visibility) (entity.Visibility, error) {
+// visibilityFromPb は pb の Visibility を、ユースケースに渡す公開範囲の文字列にする。
+// UNSPECIFIED や未定義の値は空文字にする（ドメインの entity.NewVisibility が ErrInvalidVisibility にする）。
+func visibilityFromPb(v pb.Visibility) string {
 	switch v {
 	case pb.Visibility_VISIBILITY_PUBLIC:
-		return entity.VisibilityPublic, nil
+		return entity.VisibilityPublic.String()
 	case pb.Visibility_VISIBILITY_PRIVATE:
-		return entity.VisibilityPrivate, nil
+		return entity.VisibilityPrivate.String()
 	case pb.Visibility_VISIBILITY_RESTRICTED:
-		return entity.VisibilityRestricted, nil
+		return entity.VisibilityRestricted.String()
 	default:
-		return entity.Visibility{}, entity.ErrInvalidVisibility
+		return ""
 	}
 }
 
