@@ -174,14 +174,48 @@ Relationship-Based Access Control を採用。
 
 ### エラー処理
 
-- ハンドラは既知エラーを `grpcerr.WithStatus(cause, code, msg)` で変換（client には安全な status、ログには cause を保持）
-- 未変換の生エラーは `ErrorHandlingUnaryInterceptor` が汎用 `Internal` + cause ログに（**内部エラーを client に漏らさない**）
-- 横断的な `PermissionDenied`（`authz.ErrPermissionDenied`）と `Unauthenticated`（`identity.ErrUnauthenticated`）は interceptor で集約（handler は生のエラーを返すだけ）
-- command / query のメソッドには「返しうるエラー」をドキュメントコメントで書く（handler から LSP のホバーで確認できる）
-- DB 境界で低レベルエラーを翻訳（`23505` → AlreadyExists / `pgx.ErrNoRows` → NotFound）
+エラーは発生した層で意味のあるエラー（sentinel error）にし、gRPC のステータスへの変換は
+**RPC 固有のものは handler、全 RPC に共通するものは interceptor** で行う。
+
+| 層 | 役割 | 例 |
+|---|---|---|
+| db | 低レベルのエラーをドメインのエラーに翻訳する | `pgx.ErrNoRows` → `entity.ErrRecipeNotFound`、`23505` → `ErrAlreadyExists` |
+| command / query | ドメインのエラーをそのまま返す。返しうるエラーはドキュメントコメントに書く | `authz.ErrPermissionDenied`、`entity.ErrRecipeNotFound` |
+| handler | **その RPC に固有のエラー**を `grpcerr.WithStatus(cause, code, msg)` で変換する | NotFound、AlreadyExists、InvalidArgument |
+| interceptor | **全 RPC に共通するエラー**を変換し、未変換のエラーは `Internal` にして中身を隠す | PermissionDenied、Unauthenticated、Internal |
+
+- **内部エラーを client に漏らさない**: client に返るのは `grpcerr.WithStatus` に渡した安全な文言だけ。
+  cause はログにだけ残す。変換し忘れた生エラーは `ErrorHandlingUnaryInterceptor` が汎用の `Internal` にする
+- **横断的なエラーは interceptor に集約する**: `authz.ErrPermissionDenied` と `identity.ErrUnauthenticated` は
+  どの RPC でも同じ扱いなので、handler では変換せず生のエラーを返す（新しい RPC でも書き忘れが起きない）
+- **返しうるエラーはユースケースに書く**: command / query のメソッドのドキュメントコメントに「返しうるエラー」を書く。
+  handler から呼び出し先にホバーすれば、その RPC が返しうるエラーが分かる
+- 入力の形式検証（必須・UUID・email・enum）は protovalidate の interceptor が `InvalidArgument` にする
 - **ログレベルは gRPC コードで決める**（`levelForCode`）: 想定内のクライアントエラー
   （`InvalidArgument` / `PermissionDenied` / `AlreadyExists` / `Unauthenticated`）は `info`、
   `NotFound` や一時障害（`Unavailable` 等）は `warn`、サーバ起因（`Internal` 等）は `error`
+
+#### 検討して採用しなかった方式
+
+- **handler ですべてのエラーを明示的に変換する**: handler を読めば挙動が分かるが、PermissionDenied などの
+  分岐が全 RPC に重複し、書き忘れると Internal になる
+- **エラーに種類（NotFound 等）を持たせ、interceptor で種類からコードに変換する**: interceptor が機能を知らずに済むが、
+  変更範囲が大きく、同じエラーの文言を RPC ごとに変えられない
+
+#### 今後: API テストで担保する（実装予定）
+
+ドキュメントコメントはコンパイラが検査しないため、実装とずれうる（実際に UpdateRecipe / ChangeVisibility で
+NotFound の変換漏れがあった）。RPC ごとに「どの状況でどのステータスが返るか」を API テストで担保する予定。
+
+- 本番と同じ interceptor の並びでサーバーをテスト内に起動し（bufconn）、生成されたクライアントから RPC を呼ぶ
+- 永続化は実 DB（compose の PostgreSQL に migration を適用）を使い、db 層の翻訳まで含めて検査する
+- 検査する内容の例:
+  - GetRecipe: private は owner だけ / restricted は共有された相手だけ / 存在しなければ NotFound
+  - UpdateRecipe: editor 以上だけ / tuple はあるがレシピの実体がなければ NotFound
+  - ChangeVisibility: owner だけ / UNSPECIFIED は InvalidArgument
+  - ShareRecipe: owner だけ / 共有済みなら AlreadyExists
+  - CreateUser: 同じ sub なら AlreadyExists
+  - 全 RPC: 認証されていなければ Unauthenticated、想定外のエラーは Internal で中身を隠す
 
 ### ヘルスチェック
 
