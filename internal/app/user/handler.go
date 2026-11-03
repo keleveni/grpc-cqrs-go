@@ -35,7 +35,7 @@ func (h *handler) CreateUser(
 		return nil, grpcerr.WithStatus(err, codes.Unauthenticated, msgUnauthenticated)
 	}
 
-	result, err := h.command.Create(ctx, id, in.GetName(), in.GetEmail())
+	result, err := h.command.CreateUser(ctx, id, in.GetName(), in.GetEmail())
 	if err != nil {
 		if errors.Is(err, entity.ErrAlreadyExists) {
 			return nil, grpcerr.WithStatus(err, codes.AlreadyExists, msgUserAlreadyExists)

@@ -14,7 +14,7 @@ func NewCommand(storage Storage) *Command {
 	return &Command{storage: storage}
 }
 
-func (c *Command) Create(
+func (c *Command) CreateUser(
 	ctx context.Context,
 	id string,
 	name,

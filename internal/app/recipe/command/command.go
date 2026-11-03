@@ -27,7 +27,7 @@ func NewCommand(
 	}
 }
 
-func (u *Command) Create(
+func (u *Command) CreateRecipe(
 	ctx context.Context,
 	userID string,
 	title,
@@ -60,7 +60,7 @@ func (u *Command) Create(
 	return recipe, nil
 }
 
-func (u *Command) Update(
+func (u *Command) UpdateRecipe(
 	ctx context.Context,
 	userID string,
 	id uuid.UUID,
@@ -85,7 +85,7 @@ func (u *Command) Update(
 	return nil
 }
 
-func (u *Command) UpdateVisibility(
+func (u *Command) ChangeVisibility(
 	ctx context.Context,
 	userID string,
 	id uuid.UUID,

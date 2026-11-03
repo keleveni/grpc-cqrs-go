@@ -47,7 +47,7 @@ func (h *handler) CreateRecipe(
 		return nil, grpcerr.WithStatus(err, codes.Unauthenticated, msgUnauthenticated)
 	}
 
-	result, err := h.command.Create(ctx,
+	result, err := h.command.CreateRecipe(ctx,
 		userID,
 		in.GetTitle(),
 		in.GetDescription())
@@ -74,7 +74,7 @@ func (h *handler) UpdateRecipe(
 		return nil, grpcerr.WithStatus(err, codes.Unauthenticated, msgUnauthenticated)
 	}
 
-	if err := h.command.Update(ctx, userID, recipeID, in.GetTitle(), in.GetDescription()); err != nil {
+	if err := h.command.UpdateRecipe(ctx, userID, recipeID, in.GetTitle(), in.GetDescription()); err != nil {
 		return nil, err
 	}
 
@@ -145,7 +145,7 @@ func (h *handler) ChangeVisibility(
 		return nil, grpcerr.WithStatus(err, codes.Unauthenticated, msgUnauthenticated)
 	}
 
-	if err := h.command.UpdateVisibility(ctx, userID, id, visibility); err != nil {
+	if err := h.command.ChangeVisibility(ctx, userID, id, visibility); err != nil {
 		return nil, err
 	}
 
