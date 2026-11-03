@@ -63,7 +63,7 @@ Feature-first + CQRS パターンを採用し、ドメイン（フィーチャ�
 │   │   ├── error.go
 │   │   └── wire.go
 │   ├── db/                         # データベース層（エンティティ単位）
-│   │   ├── recipe/                 #   recipe 永続化 (command + query)
+│   │   ├── recipe/                 #   recipe 永続化 (command の Storage 実装)
 │   │   ├── user/                   #   user 永続化
 │   │   ├── tuple/                  #   relation_tuples 永続化
 │   │   ├── gen/                    #   sqlc 生成コード (DO NOT EDIT)
@@ -99,15 +99,15 @@ Feature-first + CQRS パターンを採用し、ドメイン（フィーチャ�
 ```
 handler.go          ← gRPC リクエストの受付・pb ⇔ ドメインの変換・エラー変換（入力の形式検証は protovalidate の interceptor）
   ├── command/      ← 書き込み操作（エンティティ操作 → Storage インターフェース）
-  ├── query/        ← 読み取り操作（Storage → 読み取りモデル）
+  ├── query/        ← 読み取り操作（sqlc のクエリを直接使う → 読み取りモデル）
   └── entity/       ← エンティティの定義（Recipe / User など）
 ```
 
-- Storage インターフェースにより app 層と DB 層が疎結合（依存の向きは `db → app`。逆向きは import cycle になるためコンパイルで防がれる）
-- それ以外の依存の向き（entity / command / query / authz が pb や db に依存しない など）は `.golangci.yml` の depguard で検査する。command と query が互いに依存しないことはレビューで守る
-- query の Storage は `XxxRecord`（永続化から取ってきたデータ）を返し、ユースケースが `XxxResult`（呼び出し側に返す形）に変換する。権限など永続化以外の情報を足すときも Storage を変えずに済む
-- query は `query.go` にユースケース、`storage.go` に Storage のメソッドと `XxxRecord`、`result.go` に `XxxResult` を置く
-- DB 層はエンティティ単位（`db/recipe`, `db/user`, `db/tuple`）で実装。CQRS の read/write の差は app 側の interface が表現する
+- 書き込み側は Storage インターフェースにより app 層と DB 層が疎結合（依存の向きは `db → app`。逆向きは import cycle になるためコンパイルで防がれる）
+- 読み取り側は**薄い読み取り層**: 守るべき不変条件がないので Storage を挟まず、query が sqlc の生成コード（`internal/db/gen`）を直接使って `XxxResult` を組み立てる。閲覧権限の確認は query で行う
+- それ以外の依存の向き（entity / command / query / authz が pb に依存しない、command / authz が db に依存しない など）は `.golangci.yml` の depguard で検査する。command と query が互いに依存しないことはレビューで守る
+- query は `query.go` にユースケース、`result.go` に `XxxResult` を置く
+- DB 層（`db/recipe`, `db/user`, `db/tuple`）は書き込み側の Storage の実装
 - エンティティは非公開フィールドでカプセル化する（[エンティティのカプセル化](#エンティティのカプセル化) 参照）
 
 ### エンティティのカプセル化

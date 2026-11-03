@@ -6,7 +6,7 @@ import (
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/app/recipe/entity"
 )
 
-// GetRecipeResult は GetRecipe の読み取りモデル（呼び出し側に返す形）。
+// GetRecipeResult は GetRecipe の読み取りモデル。
 type GetRecipeResult struct {
 	ID          string
 	Title       string

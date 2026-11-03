@@ -21,16 +21,24 @@ linters:
             - pkg: github.com/kodaikumatani/grpc-cqrs-go/internal
               desc: entity はこのリポジトリの他パッケージに依存しない
 
-        usecase:
+        command:
           list-mode: lax
           files:
             - "**/internal/app/*/command/**"
-            - "**/internal/app/*/query/**"
           deny:
             - pkg: github.com/kodaikumatani/grpc-cqrs-go/pkg/pb
               desc: ユースケースは pb に依存しない（変換は handler の責務）
             - pkg: github.com/kodaikumatani/grpc-cqrs-go/internal/db
-              desc: 永続化は Storage インターフェース越しに使う
+              desc: 書き込みの永続化は Storage インターフェース越しに使う
+
+        # query は薄い読み取り層として sqlc の生成コード（internal/db/gen）を直接使ってよい
+        query:
+          list-mode: lax
+          files:
+            - "**/internal/app/*/query/**"
+          deny:
+            - pkg: github.com/kodaikumatani/grpc-cqrs-go/pkg/pb
+              desc: ユースケースは pb に依存しない（変換は handler の責務）
 
         authz:
           list-mode: lax

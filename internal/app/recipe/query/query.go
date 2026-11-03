@@ -2,22 +2,31 @@ package query
 
 import (
 	"context"
+	"errors"
 	"uuid"
 
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/kodaikumatani/grpc-cqrs-go/internal/app/recipe/entity"
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/authz"
+	"github.com/kodaikumatani/grpc-cqrs-go/internal/db/gen"
 )
 
+// Query は読み取り側のユースケース。
+//
+// 読み取りは守るべき不変条件がないので、Storage インタフェースを挟まずに
+// sqlc で生成したクエリを直接使う（薄い読み取り層）。
 type Query struct {
-	storage Storage
+	queries *gen.Queries
 	checker authz.Checker
 }
 
 func NewQuery(
-	storage Storage,
+	pool *pgxpool.Pool,
 	checker authz.Checker,
 ) *Query {
 	return &Query{
-		storage: storage,
+		queries: gen.New(pool),
 		checker: checker,
 	}
 }
@@ -32,24 +41,32 @@ func (q *Query) GetRecipe(
 	userID string,
 	id uuid.UUID,
 ) (*GetRecipeResult, error) {
-	record, err := q.storage.GetRecipe(ctx, id)
+	row, err := q.queries.GetRecipeWithUser(ctx, id)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, entity.ErrRecipeNotFound
+	}
 	if err != nil {
 		return nil, err
 	}
 
-	if err := q.checker.CanViewRecipe(ctx, userID, id.String(), record.Visibility); err != nil {
+	visibility, err := entity.NewVisibility(string(row.Visibility))
+	if err != nil {
+		return nil, err
+	}
+
+	if err := q.checker.CanViewRecipe(ctx, userID, id.String(), visibility); err != nil {
 		return nil, err
 	}
 
 	return &GetRecipeResult{
-		ID:          record.ID,
-		Title:       record.Title,
-		Description: record.Description,
-		Visibility:  record.Visibility,
-		CreatedAt:   record.CreatedAt,
-		UpdatedAt:   record.UpdatedAt,
-		UserID:      record.UserID,
-		UserName:    record.UserName,
-		UserEmail:   record.UserEmail,
+		ID:          row.ID.String(),
+		Title:       row.Title,
+		Description: row.Description,
+		Visibility:  visibility,
+		CreatedAt:   row.CreatedAt,
+		UpdatedAt:   row.UpdatedAt,
+		UserID:      row.UserID,
+		UserName:    row.UserName,
+		UserEmail:   row.UserEmail,
 	}, nil
 }

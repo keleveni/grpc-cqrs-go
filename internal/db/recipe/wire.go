@@ -6,5 +6,4 @@ import (
 
 var Set = wire.NewSet(
 	NewCommand,
-	NewQuery,
 )
