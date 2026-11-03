@@ -95,14 +95,20 @@ func (u *Command) UpdateRecipe(
 // ChangeVisibility はレシピの公開範囲を変更する。manage 権限（owner）を持つユーザーだけが変更できる。
 //
 // 返しうるエラー:
+//   - entity.ErrInvalidVisibility: visibility が公開範囲として不正
 //   - authz.ErrPermissionDenied: manage 権限がない（レシピが存在しない場合もこちらになる）
 //   - entity.ErrRecipeNotFound: manage 権限はあるがレシピが存在しない
 func (u *Command) ChangeVisibility(
 	ctx context.Context,
 	userID string,
 	id uuid.UUID,
-	visibility entity.Visibility,
+	visibility string,
 ) error {
+	v, err := entity.NewVisibility(visibility)
+	if err != nil {
+		return err
+	}
+
 	if err := u.checker.CanManageRecipe(ctx, userID, id.String()); err != nil {
 		return err
 	}
@@ -112,7 +118,7 @@ func (u *Command) ChangeVisibility(
 		return err
 	}
 
-	recipe.ChangeVisibility(visibility)
+	recipe.ChangeVisibility(v)
 
 	return u.storage.Update(ctx, recipe)
 }
