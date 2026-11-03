@@ -18,6 +18,12 @@ type Recipe struct {
 	visibility  Visibility
 }
 
+func (r *Recipe) ID() uuid.UUID          { return r.id }
+func (r *Recipe) UserID() string         { return r.userID }
+func (r *Recipe) Title() string          { return r.title }
+func (r *Recipe) Description() string    { return r.description }
+func (r *Recipe) Visibility() Visibility { return r.visibility }
+
 // NewRecipe は業務フィールドを受け取ってレシピを構築する。
 // timestamps は永続化層(DB の default / now())が管理するため domain は持たない。
 func NewRecipe(
@@ -44,12 +50,6 @@ func (r *Recipe) Edit(title, description string) {
 func (r *Recipe) ChangeVisibility(v Visibility) {
 	r.visibility = v
 }
-
-func (r *Recipe) ID() uuid.UUID          { return r.id }
-func (r *Recipe) UserID() string         { return r.userID }
-func (r *Recipe) Title() string          { return r.title }
-func (r *Recipe) Description() string    { return r.description }
-func (r *Recipe) Visibility() Visibility { return r.visibility }
 
 type Visibility struct {
 	value string
