@@ -5,8 +5,6 @@ import (
 	"errors"
 	"testing"
 	"uuid"
-
-	"github.com/kodaikumatani/grpc-cqrs-go/internal/app/recipe/entity"
 )
 
 // fakeStorage は ListRelations が返す relation を差し替えられる Storage のスタブ。
@@ -41,65 +39,20 @@ var errBoom = errors.New("boom")
 
 func TestCanViewRecipe(t *testing.T) {
 	tests := []struct {
-		name       string
-		visibility entity.Visibility
-		storage    fakeStorage
-		want       error
+		name    string
+		storage fakeStorage
+		want    error
 	}{
-		{
-			name:       "public is viewable without relation",
-			visibility: entity.VisibilityPublic,
-			storage:    fakeStorage{listErr: errBoom}, // storage を引かないこと
-			want:       nil,
-		},
-		{
-			name:       "private is viewable by owner",
-			visibility: entity.VisibilityPrivate,
-			storage:    fakeStorage{relations: []Relation{RelOwner}},
-			want:       nil,
-		},
-		{
-			name:       "private is not viewable by viewer",
-			visibility: entity.VisibilityPrivate,
-			storage:    fakeStorage{relations: []Relation{RelViewer}},
-			want:       ErrPermissionDenied,
-		},
-		{
-			name:       "restricted is viewable by viewer",
-			visibility: entity.VisibilityRestricted,
-			storage:    fakeStorage{relations: []Relation{RelViewer}},
-			want:       nil,
-		},
-		{
-			name:       "restricted is viewable by editor",
-			visibility: entity.VisibilityRestricted,
-			storage:    fakeStorage{relations: []Relation{RelEditor}},
-			want:       nil,
-		},
-		{
-			name:       "restricted is not viewable without relation",
-			visibility: entity.VisibilityRestricted,
-			storage:    fakeStorage{},
-			want:       ErrPermissionDenied,
-		},
-		{
-			name:       "storage error is passed through",
-			visibility: entity.VisibilityRestricted,
-			storage:    fakeStorage{listErr: errBoom},
-			want:       errBoom,
-		},
-		{
-			name:       "unknown visibility is denied",
-			visibility: entity.Visibility{},
-			storage:    fakeStorage{relations: []Relation{RelOwner}},
-			want:       ErrPermissionDenied,
-		},
+		{name: "owner は view 権限を持つ", storage: fakeStorage{relations: []Relation{RelOwner}}, want: nil},
+		{name: "editor は view 権限を持つ", storage: fakeStorage{relations: []Relation{RelEditor}}, want: nil},
+		{name: "viewer は view 権限を持つ", storage: fakeStorage{relations: []Relation{RelViewer}}, want: nil},
+		{name: "relation がなければ拒否", storage: fakeStorage{}, want: ErrPermissionDenied},
+		{name: "storage のエラーはそのまま返す", storage: fakeStorage{listErr: errBoom}, want: errBoom},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := NewChecker(tt.storage).
-				CanViewRecipe(context.Background(), "user", "recipe", tt.visibility)
+			got := NewChecker(tt.storage).CanViewRecipe(context.Background(), "user", "recipe")
 			if !errors.Is(got, tt.want) {
 				t.Fatalf("want %v, got %v", tt.want, got)
 			}

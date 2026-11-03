@@ -49,6 +49,8 @@ linters:
               desc: authz は pb に依存しない
             - pkg: github.com/kodaikumatani/grpc-cqrs-go/internal/db
               desc: tuple の永続化は authz.Storage 越しに使う
+            - pkg: github.com/kodaikumatani/grpc-cqrs-go/internal/app
+              desc: authz は機能（app）に依存しない。機能固有の判定は各機能の domain service に置く
 
         db:
           list-mode: lax

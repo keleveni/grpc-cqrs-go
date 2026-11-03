@@ -54,7 +54,7 @@ func (q *Query) GetRecipe(
 		return nil, err
 	}
 
-	if err := q.checker.CanViewRecipe(ctx, userID, id.String(), visibility); err != nil {
+	if err := entity.CanView(ctx, q.checker, userID, id.String(), visibility); err != nil {
 		return nil, err
 	}
 
