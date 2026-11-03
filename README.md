@@ -12,6 +12,7 @@ Feature-first + CQRS アーキテクチャで構築した gRPC サーバーで�
 - **sqlc** - SQL からの型安全なコード生成
 - **Atlas** - データベースマイグレーション
 - **Buf** - Protobuf コード生成
+- **golangci-lint (depguard)** - 静的解析と依存の向きの検査
 - **Envoy / ESPv2（前段ゲートウェイ）+ OIDC (JWKS)** - 認証（ゲートウェイが JWT を検証し検証済み ID をヘッダ伝播）
 - **zerolog** - 構造化ログ
 - **Docker (distroless) / GitHub Actions → GHCR** - コンテナ配布（linux/arm64）
@@ -102,7 +103,8 @@ handler.go          ← gRPC リクエストの受付・バリデーション・
   └── entity/       ← エンティティの定義（Recipe / User など）
 ```
 
-- Storage インターフェースにより app 層と DB 層が疎結合（依存の向きは `db → app`）
+- Storage インターフェースにより app 層と DB 層が疎結合（依存の向きは `db → app`。逆向きは import cycle になるためコンパイルで防がれる）
+- それ以外の依存の向き（entity / command / query が pb や db に依存しない、command と query が互いに依存しない など）は `.golangci.yml` の depguard で検査する
 - DB 層はエンティティ単位（`db/recipe`, `db/user`, `db/tuple`）で実装。CQRS の read/write の差は app 側の interface が表現する
 - エンティティは非公開フィールド + コンストラクタ + getter でカプセル化（不正な生成を型で防止）
 
@@ -309,6 +311,12 @@ grpcurl -plaintext localhost:50051 list
   app cluster の `grpc_health_check`）。app は `-host 127.0.0.1`（loopback）で起動し、Envoy 経由のみ到達。
 - **k8s (self-hosted) 例**: initContainer(migrate) + app(loopback) + envoy(sidecar) で 1 Pod。
   共有 PostgreSQL に `sub` を user id とするスキーマを流す（Flux/GitOps でのデプロイ構成は別リポジトリ）。
+
+## Lint
+
+```bash
+golangci-lint run ./...
+```
 
 ## コード生成
 
