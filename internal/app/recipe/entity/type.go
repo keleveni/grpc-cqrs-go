@@ -1,8 +1,9 @@
 package entity
 
 import (
+	"uuid"
+
 	"github.com/cockroachdb/errors"
-	"github.com/google/uuid"
 )
 
 var (

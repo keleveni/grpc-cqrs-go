@@ -2,8 +2,8 @@ package share
 
 import (
 	"context"
+	"uuid"
 
-	"github.com/google/uuid"
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/authz"
 )
 

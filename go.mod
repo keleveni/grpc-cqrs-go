@@ -6,13 +6,11 @@ require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.12-20260825204119-511051f7f437.1
 	buf.build/go/protovalidate v1.4.0
 	github.com/cockroachdb/errors v1.12.0
-	github.com/google/uuid v1.6.0
 	github.com/google/wire v0.7.0
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.3
 	github.com/jackc/pgx/v5 v5.8.0
 	github.com/mattn/go-isatty v0.0.20
 	github.com/rs/zerolog v1.34.0
-	github.com/samber/lo v1.52.0
 	google.golang.org/grpc v1.83.1
 	google.golang.org/protobuf v1.36.12
 )

@@ -2,8 +2,7 @@ package authz
 
 import (
 	"context"
-
-	"github.com/google/uuid"
+	"uuid"
 )
 
 type Storage interface {

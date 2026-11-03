@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"uuid"
 
-	"github.com/google/uuid"
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/app/recipe/entity"
 )
 

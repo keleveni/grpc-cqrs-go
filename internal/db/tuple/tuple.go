@@ -3,8 +3,8 @@ package tuple
 import (
 	"context"
 	"errors"
+	"uuid"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/authz"

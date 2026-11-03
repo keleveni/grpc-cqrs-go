@@ -10,7 +10,9 @@ sql:
         sql_package: "pgx/v5"
         overrides:
           - db_type: "uuid"
-            go_type: "github.com/google/uuid.UUID"
+            go_type:
+              import: "uuid"
+              type: "UUID"
           - db_type: "timestamp"
             go_type: "time.Time"
           - db_type: "pg_catalog.timestamp"

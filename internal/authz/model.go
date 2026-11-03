@@ -1,7 +1,7 @@
 package authz
 
 import (
-	"github.com/google/uuid"
+	"uuid"
 )
 
 type Tuple struct {

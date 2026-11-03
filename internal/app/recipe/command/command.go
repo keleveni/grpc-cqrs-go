@@ -2,11 +2,10 @@ package command
 
 import (
 	"context"
+	"uuid"
 
-	"github.com/google/uuid"
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/app/recipe/entity"
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/authz"
-	"github.com/samber/lo"
 )
 
 type Command struct {
@@ -34,7 +33,7 @@ func (u *Command) CreateRecipe(
 	description string,
 ) (*entity.Recipe, error) {
 	recipe := entity.NewRecipe(
-		lo.Must(uuid.NewV7()),
+		uuid.NewV7(),
 		userID,
 		title,
 		description,
