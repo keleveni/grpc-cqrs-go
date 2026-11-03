@@ -21,7 +21,7 @@ func NewQuery(pool *pgxpool.Pool) query.Storage {
 	return &queryStore{queries: gen.New(pool)}
 }
 
-func (s *queryStore) Get(ctx context.Context, id uuid.UUID) (*query.RecipeWithUser, error) {
+func (s *queryStore) GetRecipe(ctx context.Context, id uuid.UUID) (*query.GetRecipeResult, error) {
 	row, err := s.queries.GetRecipeWithUser(ctx, id)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, entity.ErrRecipeNotFound
@@ -35,15 +35,17 @@ func (s *queryStore) Get(ctx context.Context, id uuid.UUID) (*query.RecipeWithUs
 		return nil, err
 	}
 
-	return &query.RecipeWithUser{
+	return &query.GetRecipeResult{
 		ID:          row.ID.String(),
-		UserID:      row.UserID,
 		Title:       row.Title,
 		Description: row.Description,
 		Visibility:  visibility,
 		CreatedAt:   row.CreatedAt,
 		UpdatedAt:   row.UpdatedAt,
-		UserName:    row.UserName,
-		UserEmail:   row.UserEmail,
+		User: query.User{
+			ID:    row.UserID,
+			Name:  row.UserName,
+			Email: row.UserEmail,
+		},
 	}, nil
 }

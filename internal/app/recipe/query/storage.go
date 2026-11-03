@@ -7,5 +7,5 @@ import (
 )
 
 type Storage interface {
-	Get(ctx context.Context, id uuid.UUID) (*RecipeWithUser, error)
+	GetRecipe(ctx context.Context, id uuid.UUID) (*GetRecipeResult, error)
 }

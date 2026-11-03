@@ -37,7 +37,7 @@ Feature-first + CQRS パターンを採用し、ドメイン（フィーチャ�
 │   ├── app/                        # アプリケーション層（フィーチャ単位）
 │   │   ├── recipe/                 # Recipe ドメイン
 │   │   │   ├── command/            #   書き込み (Create, Update, UpdateVisibility)
-│   │   │   ├── query/              #   読み取り (Get)
+│   │   │   ├── query/              #   読み取り (GetRecipe)
 │   │   │   ├── entity/             #   エンティティ (Recipe, Visibility)
 │   │   │   ├── handler.go          #   gRPC ハンドラー
 │   │   │   └── wire.go

@@ -6,14 +6,20 @@ import (
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/app/recipe/entity"
 )
 
-type RecipeWithUser struct {
+// GetRecipeResult は GetRecipe ユースケースの読み取りモデル。
+type GetRecipeResult struct {
 	ID          string
-	UserID      string
 	Title       string
 	Description string
 	Visibility  entity.Visibility
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
-	UserName    string
-	UserEmail   string
+	User        User
+}
+
+// User はレシピ作成者の読み取りモデル。
+type User struct {
+	ID    string
+	Name  string
+	Email string
 }

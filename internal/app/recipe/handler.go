@@ -122,7 +122,7 @@ func (h *handler) GetRecipe(
 		return nil, grpcerr.WithStatus(err, codes.Unauthenticated, msgUnauthenticated)
 	}
 
-	result, err := h.query.Get(ctx, userID, id)
+	result, err := h.query.GetRecipe(ctx, userID, id)
 	if err != nil {
 		if errors.Is(err, entity.ErrRecipeNotFound) {
 			return nil, grpcerr.WithStatus(err, codes.NotFound, msgRecipeNotFound)
@@ -138,7 +138,7 @@ func (h *handler) GetRecipe(
 	return &pb.GetRecipeResponse{
 		Recipe: &pb.Recipe{
 			Id:          result.ID,
-			UserId:      result.UserID,
+			UserId:      result.User.ID,
 			Title:       result.Title,
 			Description: result.Description,
 			Visibility:  visibility,
@@ -146,9 +146,9 @@ func (h *handler) GetRecipe(
 			UpdatedAt:   timestamppb.New(result.UpdatedAt),
 		},
 		User: &pb.User{
-			Id:    result.UserID,
-			Name:  result.UserName,
-			Email: result.UserEmail,
+			Id:    result.User.ID,
+			Name:  result.User.Name,
+			Email: result.User.Email,
 		},
 	}, nil
 }

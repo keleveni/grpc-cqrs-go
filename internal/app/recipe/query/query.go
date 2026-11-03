@@ -22,12 +22,12 @@ func NewQuery(
 	}
 }
 
-func (q *Query) Get(
+func (q *Query) GetRecipe(
 	ctx context.Context,
 	userID string,
 	id uuid.UUID,
-) (*RecipeWithUser, error) {
-	result, err := q.storage.Get(ctx, id)
+) (*GetRecipeResult, error) {
+	result, err := q.storage.GetRecipe(ctx, id)
 	if err != nil {
 		return nil, err
 	}
