@@ -35,17 +35,17 @@ func (s *queryStore) GetRecipe(ctx context.Context, id uuid.UUID) (*query.GetRec
 		return nil, err
 	}
 
-	return &query.GetRecipeResult{
+	result := &query.GetRecipeResult{
 		ID:          row.ID.String(),
 		Title:       row.Title,
 		Description: row.Description,
 		Visibility:  visibility,
 		CreatedAt:   row.CreatedAt,
 		UpdatedAt:   row.UpdatedAt,
-		User: query.User{
-			ID:    row.UserID,
-			Name:  row.UserName,
-			Email: row.UserEmail,
-		},
-	}, nil
+	}
+	result.User.ID = row.UserID
+	result.User.Name = row.UserName
+	result.User.Email = row.UserEmail
+
+	return result, nil
 }

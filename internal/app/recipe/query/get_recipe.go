@@ -21,14 +21,12 @@ type GetRecipeResult struct {
 	Visibility  entity.Visibility
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
-	User        User
-}
-
-// User はレシピ作成者の読み取りモデル。
-type User struct {
-	ID    string
-	Name  string
-	Email string
+	// User はレシピの作成者
+	User struct {
+		ID    string
+		Name  string
+		Email string
+	}
 }
 
 // GetRecipe はレシピと作成者の情報を、公開範囲に応じた閲覧権限を確認したうえで返す。
