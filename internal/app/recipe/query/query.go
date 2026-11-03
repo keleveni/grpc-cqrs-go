@@ -41,17 +41,15 @@ func (q *Query) GetRecipe(
 		return nil, err
 	}
 
-	result := &GetRecipeResult{
+	return &GetRecipeResult{
 		ID:          record.ID,
 		Title:       record.Title,
 		Description: record.Description,
 		Visibility:  record.Visibility,
 		CreatedAt:   record.CreatedAt,
 		UpdatedAt:   record.UpdatedAt,
-	}
-	result.User.ID = record.UserID
-	result.User.Name = record.UserName
-	result.User.Email = record.UserEmail
-
-	return result, nil
+		UserID:      record.UserID,
+		UserName:    record.UserName,
+		UserEmail:   record.UserEmail,
+	}, nil
 }

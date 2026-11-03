@@ -107,7 +107,7 @@ func (h *handler) GetRecipe(
 	return &pb.GetRecipeResponse{
 		Recipe: &pb.Recipe{
 			Id:          result.ID,
-			UserId:      result.User.ID,
+			UserId:      result.UserID,
 			Title:       result.Title,
 			Description: result.Description,
 			Visibility:  visibilityToPb(result.Visibility),
@@ -115,9 +115,9 @@ func (h *handler) GetRecipe(
 			UpdatedAt:   timestamppb.New(result.UpdatedAt),
 		},
 		User: &pb.User{
-			Id:    result.User.ID,
-			Name:  result.User.Name,
-			Email: result.User.Email,
+			Id:    result.UserID,
+			Name:  result.UserName,
+			Email: result.UserEmail,
 		},
 	}, nil
 }
