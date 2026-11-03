@@ -2,16 +2,15 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.2
 // - protoc             (unknown)
-// source: share/share.proto
+// source: share/v1/share.proto
 
-package share
+package sharev1
 
 import (
 	context "context"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
-	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -20,14 +19,14 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	ShareService_ShareRecipe_FullMethodName = "/share.ShareService/ShareRecipe"
+	ShareService_ShareRecipe_FullMethodName = "/share.v1.ShareService/ShareRecipe"
 )
 
 // ShareServiceClient is the client API for ShareService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ShareServiceClient interface {
-	ShareRecipe(ctx context.Context, in *ShareRecipeRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	ShareRecipe(ctx context.Context, in *ShareRecipeRequest, opts ...grpc.CallOption) (*ShareRecipeResponse, error)
 }
 
 type shareServiceClient struct {
@@ -38,9 +37,9 @@ func NewShareServiceClient(cc grpc.ClientConnInterface) ShareServiceClient {
 	return &shareServiceClient{cc}
 }
 
-func (c *shareServiceClient) ShareRecipe(ctx context.Context, in *ShareRecipeRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+func (c *shareServiceClient) ShareRecipe(ctx context.Context, in *ShareRecipeRequest, opts ...grpc.CallOption) (*ShareRecipeResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(emptypb.Empty)
+	out := new(ShareRecipeResponse)
 	err := c.cc.Invoke(ctx, ShareService_ShareRecipe_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -52,7 +51,7 @@ func (c *shareServiceClient) ShareRecipe(ctx context.Context, in *ShareRecipeReq
 // All implementations must embed UnimplementedShareServiceServer
 // for forward compatibility.
 type ShareServiceServer interface {
-	ShareRecipe(context.Context, *ShareRecipeRequest) (*emptypb.Empty, error)
+	ShareRecipe(context.Context, *ShareRecipeRequest) (*ShareRecipeResponse, error)
 	mustEmbedUnimplementedShareServiceServer()
 }
 
@@ -63,7 +62,7 @@ type ShareServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedShareServiceServer struct{}
 
-func (UnimplementedShareServiceServer) ShareRecipe(context.Context, *ShareRecipeRequest) (*emptypb.Empty, error) {
+func (UnimplementedShareServiceServer) ShareRecipe(context.Context, *ShareRecipeRequest) (*ShareRecipeResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ShareRecipe not implemented")
 }
 func (UnimplementedShareServiceServer) mustEmbedUnimplementedShareServiceServer() {}
@@ -109,7 +108,7 @@ func _ShareService_ShareRecipe_Handler(srv interface{}, ctx context.Context, dec
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var ShareService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "share.ShareService",
+	ServiceName: "share.v1.ShareService",
 	HandlerType: (*ShareServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -118,5 +117,5 @@ var ShareService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "share/share.proto",
+	Metadata: "share/v1/share.proto",
 }

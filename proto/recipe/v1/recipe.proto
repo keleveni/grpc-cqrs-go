@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package recipe;
+package recipe.v1;
 
-option go_package = "github.com/kodaikumatani/grpc-cqrs-go/pkg/pb/recipe";
+option go_package = "github.com/kodaikumatani/grpc-cqrs-go/pkg/pb/recipe/v1;recipev1";
 
 import "buf/validate/validate.proto";
 import "google/protobuf/timestamp.proto";

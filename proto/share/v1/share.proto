@@ -1,14 +1,13 @@
 syntax = "proto3";
 
-package share;
+package share.v1;
 
-option go_package = "github.com/kodaikumatani/grpc-cqrs-go/pkg/pb/share";
+option go_package = "github.com/kodaikumatani/grpc-cqrs-go/pkg/pb/share/v1;sharev1";
 
 import "buf/validate/validate.proto";
-import "google/protobuf/empty.proto";
 
 service ShareService {
-  rpc ShareRecipe(ShareRecipeRequest) returns (google.protobuf.Empty);
+  rpc ShareRecipe(ShareRecipeRequest) returns (ShareRecipeResponse);
 }
 
 message ShareRecipeRequest {
@@ -17,3 +16,5 @@ message ShareRecipeRequest {
   // 許可する値の判定は authz.NewRelation が持つ
   string relation = 3 [(buf.validate.field).required = true];
 }
+
+message ShareRecipeResponse {}

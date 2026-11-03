@@ -2,9 +2,9 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.2
 // - protoc             (unknown)
-// source: recipe/recipe.proto
+// source: recipe/v1/recipe.proto
 
-package recipe
+package recipev1
 
 import (
 	context "context"
@@ -19,10 +19,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	RecipeService_CreateRecipe_FullMethodName     = "/recipe.RecipeService/CreateRecipe"
-	RecipeService_GetRecipe_FullMethodName        = "/recipe.RecipeService/GetRecipe"
-	RecipeService_UpdateRecipe_FullMethodName     = "/recipe.RecipeService/UpdateRecipe"
-	RecipeService_ChangeVisibility_FullMethodName = "/recipe.RecipeService/ChangeVisibility"
+	RecipeService_CreateRecipe_FullMethodName     = "/recipe.v1.RecipeService/CreateRecipe"
+	RecipeService_GetRecipe_FullMethodName        = "/recipe.v1.RecipeService/GetRecipe"
+	RecipeService_UpdateRecipe_FullMethodName     = "/recipe.v1.RecipeService/UpdateRecipe"
+	RecipeService_ChangeVisibility_FullMethodName = "/recipe.v1.RecipeService/ChangeVisibility"
 )
 
 // RecipeServiceClient is the client API for RecipeService service.
@@ -210,7 +210,7 @@ func _RecipeService_ChangeVisibility_Handler(srv interface{}, ctx context.Contex
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var RecipeService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "recipe.RecipeService",
+	ServiceName: "recipe.v1.RecipeService",
 	HandlerType: (*RecipeServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -231,5 +231,5 @@ var RecipeService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "recipe/recipe.proto",
+	Metadata: "recipe/v1/recipe.proto",
 }

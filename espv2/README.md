@@ -55,7 +55,7 @@ UID=01J...                     # 対象ユーザーの ULID
 INFO=$(printf '{"sub":"%s"}' "$UID" | basenc --base64url | tr -d '=')
 grpcurl -plaintext -H "x-endpoint-api-userinfo: $INFO" -d '{
   "title": "カレー", "description": "..."
-}' localhost:50051 recipe.RecipeService/CreateRecipe
+}' localhost:50051 recipe.v1.RecipeService/CreateRecipe
 ```
 （`basenc` が無ければ `base64` でも可。app 側は padding 有無どちらも受理）
 

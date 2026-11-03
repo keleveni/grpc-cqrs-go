@@ -111,7 +111,7 @@ docker run --rm -v "$PWD/envoy.yaml:/e.yaml:ro" \
 PAYLOAD='{"iss":"https://accounts.google.com","sub":"1234567890","email":"me@example.com"}'
 USERINFO=$(printf '%s' "$PAYLOAD" | base64 | tr '+/' '-_' | tr -d '=\n')
 grpcurl -plaintext -H "x-endpoint-api-userinfo: $USERINFO" \
-  -d '{"id":"..."}' localhost:50051 recipe.RecipeService/GetRecipe
+  -d '{"id":"..."}' localhost:50051 recipe.v1.RecipeService/GetRecipe
 ```
 
 Envoy 込みで試す場合は本物の IdP と JWT が要る。

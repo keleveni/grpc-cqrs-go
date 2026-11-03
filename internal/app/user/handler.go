@@ -8,7 +8,7 @@ import (
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/app/user/entity"
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/grpcerr"
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/identity"
-	pb "github.com/kodaikumatani/grpc-cqrs-go/pkg/pb/user"
+	pb "github.com/kodaikumatani/grpc-cqrs-go/pkg/pb/user/v1"
 	"google.golang.org/grpc/codes"
 )
 

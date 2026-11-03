@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package user;
+package user.v1;
 
-option go_package = "github.com/kodaikumatani/grpc-cqrs-go/pkg/pb/user";
+option go_package = "github.com/kodaikumatani/grpc-cqrs-go/pkg/pb/user/v1;userv1";
 
 import "buf/validate/validate.proto";
 

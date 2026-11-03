@@ -2,9 +2,9 @@
 // versions:
 // 	protoc-gen-go v1.36.12
 // 	protoc        (unknown)
-// source: recipe/recipe.proto
+// source: recipe/v1/recipe.proto
 
-package recipe
+package recipev1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
@@ -59,11 +59,11 @@ func (x Visibility) String() string {
 }
 
 func (Visibility) Descriptor() protoreflect.EnumDescriptor {
-	return file_recipe_recipe_proto_enumTypes[0].Descriptor()
+	return file_recipe_v1_recipe_proto_enumTypes[0].Descriptor()
 }
 
 func (Visibility) Type() protoreflect.EnumType {
-	return &file_recipe_recipe_proto_enumTypes[0]
+	return &file_recipe_v1_recipe_proto_enumTypes[0]
 }
 
 func (x Visibility) Number() protoreflect.EnumNumber {
@@ -72,7 +72,7 @@ func (x Visibility) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Visibility.Descriptor instead.
 func (Visibility) EnumDescriptor() ([]byte, []int) {
-	return file_recipe_recipe_proto_rawDescGZIP(), []int{0}
+	return file_recipe_v1_recipe_proto_rawDescGZIP(), []int{0}
 }
 
 type Recipe struct {
@@ -83,14 +83,14 @@ type Recipe struct {
 	Description   string                 `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
 	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	Visibility    Visibility             `protobuf:"varint,7,opt,name=visibility,proto3,enum=recipe.Visibility" json:"visibility,omitempty"`
+	Visibility    Visibility             `protobuf:"varint,7,opt,name=visibility,proto3,enum=recipe.v1.Visibility" json:"visibility,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Recipe) Reset() {
 	*x = Recipe{}
-	mi := &file_recipe_recipe_proto_msgTypes[0]
+	mi := &file_recipe_v1_recipe_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -102,7 +102,7 @@ func (x *Recipe) String() string {
 func (*Recipe) ProtoMessage() {}
 
 func (x *Recipe) ProtoReflect() protoreflect.Message {
-	mi := &file_recipe_recipe_proto_msgTypes[0]
+	mi := &file_recipe_v1_recipe_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -115,7 +115,7 @@ func (x *Recipe) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Recipe.ProtoReflect.Descriptor instead.
 func (*Recipe) Descriptor() ([]byte, []int) {
-	return file_recipe_recipe_proto_rawDescGZIP(), []int{0}
+	return file_recipe_v1_recipe_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *Recipe) GetId() string {
@@ -177,7 +177,7 @@ type CreateRecipeRequest struct {
 
 func (x *CreateRecipeRequest) Reset() {
 	*x = CreateRecipeRequest{}
-	mi := &file_recipe_recipe_proto_msgTypes[1]
+	mi := &file_recipe_v1_recipe_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -189,7 +189,7 @@ func (x *CreateRecipeRequest) String() string {
 func (*CreateRecipeRequest) ProtoMessage() {}
 
 func (x *CreateRecipeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_recipe_recipe_proto_msgTypes[1]
+	mi := &file_recipe_v1_recipe_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -202,7 +202,7 @@ func (x *CreateRecipeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateRecipeRequest.ProtoReflect.Descriptor instead.
 func (*CreateRecipeRequest) Descriptor() ([]byte, []int) {
-	return file_recipe_recipe_proto_rawDescGZIP(), []int{1}
+	return file_recipe_v1_recipe_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *CreateRecipeRequest) GetTitle() string {
@@ -228,7 +228,7 @@ type CreateRecipeResponse struct {
 
 func (x *CreateRecipeResponse) Reset() {
 	*x = CreateRecipeResponse{}
-	mi := &file_recipe_recipe_proto_msgTypes[2]
+	mi := &file_recipe_v1_recipe_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -240,7 +240,7 @@ func (x *CreateRecipeResponse) String() string {
 func (*CreateRecipeResponse) ProtoMessage() {}
 
 func (x *CreateRecipeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_recipe_recipe_proto_msgTypes[2]
+	mi := &file_recipe_v1_recipe_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -253,7 +253,7 @@ func (x *CreateRecipeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateRecipeResponse.ProtoReflect.Descriptor instead.
 func (*CreateRecipeResponse) Descriptor() ([]byte, []int) {
-	return file_recipe_recipe_proto_rawDescGZIP(), []int{2}
+	return file_recipe_v1_recipe_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *CreateRecipeResponse) GetRecipeId() string {
@@ -272,7 +272,7 @@ type GetRecipeRequest struct {
 
 func (x *GetRecipeRequest) Reset() {
 	*x = GetRecipeRequest{}
-	mi := &file_recipe_recipe_proto_msgTypes[3]
+	mi := &file_recipe_v1_recipe_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -284,7 +284,7 @@ func (x *GetRecipeRequest) String() string {
 func (*GetRecipeRequest) ProtoMessage() {}
 
 func (x *GetRecipeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_recipe_recipe_proto_msgTypes[3]
+	mi := &file_recipe_v1_recipe_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -297,7 +297,7 @@ func (x *GetRecipeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRecipeRequest.ProtoReflect.Descriptor instead.
 func (*GetRecipeRequest) Descriptor() ([]byte, []int) {
-	return file_recipe_recipe_proto_rawDescGZIP(), []int{3}
+	return file_recipe_v1_recipe_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *GetRecipeRequest) GetId() string {
@@ -317,7 +317,7 @@ type GetRecipeResponse struct {
 
 func (x *GetRecipeResponse) Reset() {
 	*x = GetRecipeResponse{}
-	mi := &file_recipe_recipe_proto_msgTypes[4]
+	mi := &file_recipe_v1_recipe_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -329,7 +329,7 @@ func (x *GetRecipeResponse) String() string {
 func (*GetRecipeResponse) ProtoMessage() {}
 
 func (x *GetRecipeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_recipe_recipe_proto_msgTypes[4]
+	mi := &file_recipe_v1_recipe_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -342,7 +342,7 @@ func (x *GetRecipeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRecipeResponse.ProtoReflect.Descriptor instead.
 func (*GetRecipeResponse) Descriptor() ([]byte, []int) {
-	return file_recipe_recipe_proto_rawDescGZIP(), []int{4}
+	return file_recipe_v1_recipe_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *GetRecipeResponse) GetRecipe() *Recipe {
@@ -370,7 +370,7 @@ type User struct {
 
 func (x *User) Reset() {
 	*x = User{}
-	mi := &file_recipe_recipe_proto_msgTypes[5]
+	mi := &file_recipe_v1_recipe_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -382,7 +382,7 @@ func (x *User) String() string {
 func (*User) ProtoMessage() {}
 
 func (x *User) ProtoReflect() protoreflect.Message {
-	mi := &file_recipe_recipe_proto_msgTypes[5]
+	mi := &file_recipe_v1_recipe_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -395,7 +395,7 @@ func (x *User) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use User.ProtoReflect.Descriptor instead.
 func (*User) Descriptor() ([]byte, []int) {
-	return file_recipe_recipe_proto_rawDescGZIP(), []int{5}
+	return file_recipe_v1_recipe_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *User) GetId() string {
@@ -430,7 +430,7 @@ type UpdateRecipeRequest struct {
 
 func (x *UpdateRecipeRequest) Reset() {
 	*x = UpdateRecipeRequest{}
-	mi := &file_recipe_recipe_proto_msgTypes[6]
+	mi := &file_recipe_v1_recipe_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -442,7 +442,7 @@ func (x *UpdateRecipeRequest) String() string {
 func (*UpdateRecipeRequest) ProtoMessage() {}
 
 func (x *UpdateRecipeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_recipe_recipe_proto_msgTypes[6]
+	mi := &file_recipe_v1_recipe_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -455,7 +455,7 @@ func (x *UpdateRecipeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateRecipeRequest.ProtoReflect.Descriptor instead.
 func (*UpdateRecipeRequest) Descriptor() ([]byte, []int) {
-	return file_recipe_recipe_proto_rawDescGZIP(), []int{6}
+	return file_recipe_v1_recipe_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *UpdateRecipeRequest) GetId() string {
@@ -488,7 +488,7 @@ type UpdateRecipeResponse struct {
 
 func (x *UpdateRecipeResponse) Reset() {
 	*x = UpdateRecipeResponse{}
-	mi := &file_recipe_recipe_proto_msgTypes[7]
+	mi := &file_recipe_v1_recipe_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -500,7 +500,7 @@ func (x *UpdateRecipeResponse) String() string {
 func (*UpdateRecipeResponse) ProtoMessage() {}
 
 func (x *UpdateRecipeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_recipe_recipe_proto_msgTypes[7]
+	mi := &file_recipe_v1_recipe_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -513,7 +513,7 @@ func (x *UpdateRecipeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateRecipeResponse.ProtoReflect.Descriptor instead.
 func (*UpdateRecipeResponse) Descriptor() ([]byte, []int) {
-	return file_recipe_recipe_proto_rawDescGZIP(), []int{7}
+	return file_recipe_v1_recipe_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *UpdateRecipeResponse) GetSuccess() bool {
@@ -526,14 +526,14 @@ func (x *UpdateRecipeResponse) GetSuccess() bool {
 type ChangeVisibilityRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Visibility    Visibility             `protobuf:"varint,2,opt,name=visibility,proto3,enum=recipe.Visibility" json:"visibility,omitempty"`
+	Visibility    Visibility             `protobuf:"varint,2,opt,name=visibility,proto3,enum=recipe.v1.Visibility" json:"visibility,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ChangeVisibilityRequest) Reset() {
 	*x = ChangeVisibilityRequest{}
-	mi := &file_recipe_recipe_proto_msgTypes[8]
+	mi := &file_recipe_v1_recipe_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -545,7 +545,7 @@ func (x *ChangeVisibilityRequest) String() string {
 func (*ChangeVisibilityRequest) ProtoMessage() {}
 
 func (x *ChangeVisibilityRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_recipe_recipe_proto_msgTypes[8]
+	mi := &file_recipe_v1_recipe_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -558,7 +558,7 @@ func (x *ChangeVisibilityRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChangeVisibilityRequest.ProtoReflect.Descriptor instead.
 func (*ChangeVisibilityRequest) Descriptor() ([]byte, []int) {
-	return file_recipe_recipe_proto_rawDescGZIP(), []int{8}
+	return file_recipe_v1_recipe_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *ChangeVisibilityRequest) GetId() string {
@@ -584,7 +584,7 @@ type ChangeVisibilityResponse struct {
 
 func (x *ChangeVisibilityResponse) Reset() {
 	*x = ChangeVisibilityResponse{}
-	mi := &file_recipe_recipe_proto_msgTypes[9]
+	mi := &file_recipe_v1_recipe_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -596,7 +596,7 @@ func (x *ChangeVisibilityResponse) String() string {
 func (*ChangeVisibilityResponse) ProtoMessage() {}
 
 func (x *ChangeVisibilityResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_recipe_recipe_proto_msgTypes[9]
+	mi := &file_recipe_v1_recipe_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -609,7 +609,7 @@ func (x *ChangeVisibilityResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChangeVisibilityResponse.ProtoReflect.Descriptor instead.
 func (*ChangeVisibilityResponse) Descriptor() ([]byte, []int) {
-	return file_recipe_recipe_proto_rawDescGZIP(), []int{9}
+	return file_recipe_v1_recipe_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ChangeVisibilityResponse) GetSuccess() bool {
@@ -619,11 +619,11 @@ func (x *ChangeVisibilityResponse) GetSuccess() bool {
 	return false
 }
 
-var File_recipe_recipe_proto protoreflect.FileDescriptor
+var File_recipe_v1_recipe_proto protoreflect.FileDescriptor
 
-const file_recipe_recipe_proto_rawDesc = "" +
+const file_recipe_v1_recipe_proto_rawDesc = "" +
 	"\n" +
-	"\x13recipe/recipe.proto\x12\x06recipe\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x93\x02\n" +
+	"\x16recipe/v1/recipe.proto\x12\trecipe.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x96\x02\n" +
 	"\x06Recipe\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x14\n" +
@@ -632,9 +632,9 @@ const file_recipe_recipe_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
-	"updated_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x122\n" +
+	"updated_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x125\n" +
 	"\n" +
-	"visibility\x18\a \x01(\x0e2\x12.recipe.VisibilityR\n" +
+	"visibility\x18\a \x01(\x0e2\x15.recipe.v1.VisibilityR\n" +
 	"visibility\"]\n" +
 	"\x13CreateRecipeRequest\x12\x1c\n" +
 	"\x05title\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05title\x12(\n" +
@@ -642,10 +642,10 @@ const file_recipe_recipe_proto_rawDesc = "" +
 	"\x14CreateRecipeResponse\x12\x1b\n" +
 	"\trecipe_id\x18\x01 \x01(\tR\brecipeId\",\n" +
 	"\x10GetRecipeRequest\x12\x18\n" +
-	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\"]\n" +
-	"\x11GetRecipeResponse\x12&\n" +
-	"\x06recipe\x18\x01 \x01(\v2\x0e.recipe.RecipeR\x06recipe\x12 \n" +
-	"\x04user\x18\x02 \x01(\v2\f.recipe.UserR\x04user\"@\n" +
+	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\"c\n" +
+	"\x11GetRecipeResponse\x12)\n" +
+	"\x06recipe\x18\x01 \x01(\v2\x11.recipe.v1.RecipeR\x06recipe\x12#\n" +
+	"\x04user\x18\x02 \x01(\v2\x0f.recipe.v1.UserR\x04user\"@\n" +
 	"\x04User\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
@@ -655,11 +655,11 @@ const file_recipe_recipe_proto_rawDesc = "" +
 	"\x05title\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05title\x12(\n" +
 	"\vdescription\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\vdescription\"0\n" +
 	"\x14UpdateRecipeResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess\"t\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"w\n" +
 	"\x17ChangeVisibilityRequest\x12\x18\n" +
-	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\x12?\n" +
+	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\x12B\n" +
 	"\n" +
-	"visibility\x18\x02 \x01(\x0e2\x12.recipe.VisibilityB\v\xbaH\b\xc8\x01\x01\x82\x01\x02\x10\x01R\n" +
+	"visibility\x18\x02 \x01(\x0e2\x15.recipe.v1.VisibilityB\v\xbaH\b\xc8\x01\x01\x82\x01\x02\x10\x01R\n" +
 	"visibility\"4\n" +
 	"\x18ChangeVisibilityResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess*r\n" +
@@ -668,56 +668,56 @@ const file_recipe_recipe_proto_rawDesc = "" +
 	"\x16VISIBILITY_UNSPECIFIED\x10\x00\x12\x15\n" +
 	"\x11VISIBILITY_PUBLIC\x10\x01\x12\x16\n" +
 	"\x12VISIBILITY_PRIVATE\x10\x02\x12\x19\n" +
-	"\x15VISIBILITY_RESTRICTED\x10\x032\xbe\x02\n" +
-	"\rRecipeService\x12I\n" +
-	"\fCreateRecipe\x12\x1b.recipe.CreateRecipeRequest\x1a\x1c.recipe.CreateRecipeResponse\x12@\n" +
-	"\tGetRecipe\x12\x18.recipe.GetRecipeRequest\x1a\x19.recipe.GetRecipeResponse\x12I\n" +
-	"\fUpdateRecipe\x12\x1b.recipe.UpdateRecipeRequest\x1a\x1c.recipe.UpdateRecipeResponse\x12U\n" +
-	"\x10ChangeVisibility\x12\x1f.recipe.ChangeVisibilityRequest\x1a .recipe.ChangeVisibilityResponseB5Z3github.com/kodaikumatani/grpc-cqrs-go/pkg/pb/recipeb\x06proto3"
+	"\x15VISIBILITY_RESTRICTED\x10\x032\xd6\x02\n" +
+	"\rRecipeService\x12O\n" +
+	"\fCreateRecipe\x12\x1e.recipe.v1.CreateRecipeRequest\x1a\x1f.recipe.v1.CreateRecipeResponse\x12F\n" +
+	"\tGetRecipe\x12\x1b.recipe.v1.GetRecipeRequest\x1a\x1c.recipe.v1.GetRecipeResponse\x12O\n" +
+	"\fUpdateRecipe\x12\x1e.recipe.v1.UpdateRecipeRequest\x1a\x1f.recipe.v1.UpdateRecipeResponse\x12[\n" +
+	"\x10ChangeVisibility\x12\".recipe.v1.ChangeVisibilityRequest\x1a#.recipe.v1.ChangeVisibilityResponseBAZ?github.com/kodaikumatani/grpc-cqrs-go/pkg/pb/recipe/v1;recipev1b\x06proto3"
 
 var (
-	file_recipe_recipe_proto_rawDescOnce sync.Once
-	file_recipe_recipe_proto_rawDescData []byte
+	file_recipe_v1_recipe_proto_rawDescOnce sync.Once
+	file_recipe_v1_recipe_proto_rawDescData []byte
 )
 
-func file_recipe_recipe_proto_rawDescGZIP() []byte {
-	file_recipe_recipe_proto_rawDescOnce.Do(func() {
-		file_recipe_recipe_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_recipe_recipe_proto_rawDesc), len(file_recipe_recipe_proto_rawDesc)))
+func file_recipe_v1_recipe_proto_rawDescGZIP() []byte {
+	file_recipe_v1_recipe_proto_rawDescOnce.Do(func() {
+		file_recipe_v1_recipe_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_recipe_v1_recipe_proto_rawDesc), len(file_recipe_v1_recipe_proto_rawDesc)))
 	})
-	return file_recipe_recipe_proto_rawDescData
+	return file_recipe_v1_recipe_proto_rawDescData
 }
 
-var file_recipe_recipe_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_recipe_recipe_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
-var file_recipe_recipe_proto_goTypes = []any{
-	(Visibility)(0),                  // 0: recipe.Visibility
-	(*Recipe)(nil),                   // 1: recipe.Recipe
-	(*CreateRecipeRequest)(nil),      // 2: recipe.CreateRecipeRequest
-	(*CreateRecipeResponse)(nil),     // 3: recipe.CreateRecipeResponse
-	(*GetRecipeRequest)(nil),         // 4: recipe.GetRecipeRequest
-	(*GetRecipeResponse)(nil),        // 5: recipe.GetRecipeResponse
-	(*User)(nil),                     // 6: recipe.User
-	(*UpdateRecipeRequest)(nil),      // 7: recipe.UpdateRecipeRequest
-	(*UpdateRecipeResponse)(nil),     // 8: recipe.UpdateRecipeResponse
-	(*ChangeVisibilityRequest)(nil),  // 9: recipe.ChangeVisibilityRequest
-	(*ChangeVisibilityResponse)(nil), // 10: recipe.ChangeVisibilityResponse
+var file_recipe_v1_recipe_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_recipe_v1_recipe_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_recipe_v1_recipe_proto_goTypes = []any{
+	(Visibility)(0),                  // 0: recipe.v1.Visibility
+	(*Recipe)(nil),                   // 1: recipe.v1.Recipe
+	(*CreateRecipeRequest)(nil),      // 2: recipe.v1.CreateRecipeRequest
+	(*CreateRecipeResponse)(nil),     // 3: recipe.v1.CreateRecipeResponse
+	(*GetRecipeRequest)(nil),         // 4: recipe.v1.GetRecipeRequest
+	(*GetRecipeResponse)(nil),        // 5: recipe.v1.GetRecipeResponse
+	(*User)(nil),                     // 6: recipe.v1.User
+	(*UpdateRecipeRequest)(nil),      // 7: recipe.v1.UpdateRecipeRequest
+	(*UpdateRecipeResponse)(nil),     // 8: recipe.v1.UpdateRecipeResponse
+	(*ChangeVisibilityRequest)(nil),  // 9: recipe.v1.ChangeVisibilityRequest
+	(*ChangeVisibilityResponse)(nil), // 10: recipe.v1.ChangeVisibilityResponse
 	(*timestamppb.Timestamp)(nil),    // 11: google.protobuf.Timestamp
 }
-var file_recipe_recipe_proto_depIdxs = []int32{
-	11, // 0: recipe.Recipe.created_at:type_name -> google.protobuf.Timestamp
-	11, // 1: recipe.Recipe.updated_at:type_name -> google.protobuf.Timestamp
-	0,  // 2: recipe.Recipe.visibility:type_name -> recipe.Visibility
-	1,  // 3: recipe.GetRecipeResponse.recipe:type_name -> recipe.Recipe
-	6,  // 4: recipe.GetRecipeResponse.user:type_name -> recipe.User
-	0,  // 5: recipe.ChangeVisibilityRequest.visibility:type_name -> recipe.Visibility
-	2,  // 6: recipe.RecipeService.CreateRecipe:input_type -> recipe.CreateRecipeRequest
-	4,  // 7: recipe.RecipeService.GetRecipe:input_type -> recipe.GetRecipeRequest
-	7,  // 8: recipe.RecipeService.UpdateRecipe:input_type -> recipe.UpdateRecipeRequest
-	9,  // 9: recipe.RecipeService.ChangeVisibility:input_type -> recipe.ChangeVisibilityRequest
-	3,  // 10: recipe.RecipeService.CreateRecipe:output_type -> recipe.CreateRecipeResponse
-	5,  // 11: recipe.RecipeService.GetRecipe:output_type -> recipe.GetRecipeResponse
-	8,  // 12: recipe.RecipeService.UpdateRecipe:output_type -> recipe.UpdateRecipeResponse
-	10, // 13: recipe.RecipeService.ChangeVisibility:output_type -> recipe.ChangeVisibilityResponse
+var file_recipe_v1_recipe_proto_depIdxs = []int32{
+	11, // 0: recipe.v1.Recipe.created_at:type_name -> google.protobuf.Timestamp
+	11, // 1: recipe.v1.Recipe.updated_at:type_name -> google.protobuf.Timestamp
+	0,  // 2: recipe.v1.Recipe.visibility:type_name -> recipe.v1.Visibility
+	1,  // 3: recipe.v1.GetRecipeResponse.recipe:type_name -> recipe.v1.Recipe
+	6,  // 4: recipe.v1.GetRecipeResponse.user:type_name -> recipe.v1.User
+	0,  // 5: recipe.v1.ChangeVisibilityRequest.visibility:type_name -> recipe.v1.Visibility
+	2,  // 6: recipe.v1.RecipeService.CreateRecipe:input_type -> recipe.v1.CreateRecipeRequest
+	4,  // 7: recipe.v1.RecipeService.GetRecipe:input_type -> recipe.v1.GetRecipeRequest
+	7,  // 8: recipe.v1.RecipeService.UpdateRecipe:input_type -> recipe.v1.UpdateRecipeRequest
+	9,  // 9: recipe.v1.RecipeService.ChangeVisibility:input_type -> recipe.v1.ChangeVisibilityRequest
+	3,  // 10: recipe.v1.RecipeService.CreateRecipe:output_type -> recipe.v1.CreateRecipeResponse
+	5,  // 11: recipe.v1.RecipeService.GetRecipe:output_type -> recipe.v1.GetRecipeResponse
+	8,  // 12: recipe.v1.RecipeService.UpdateRecipe:output_type -> recipe.v1.UpdateRecipeResponse
+	10, // 13: recipe.v1.RecipeService.ChangeVisibility:output_type -> recipe.v1.ChangeVisibilityResponse
 	10, // [10:14] is the sub-list for method output_type
 	6,  // [6:10] is the sub-list for method input_type
 	6,  // [6:6] is the sub-list for extension type_name
@@ -725,27 +725,27 @@ var file_recipe_recipe_proto_depIdxs = []int32{
 	0,  // [0:6] is the sub-list for field type_name
 }
 
-func init() { file_recipe_recipe_proto_init() }
-func file_recipe_recipe_proto_init() {
-	if File_recipe_recipe_proto != nil {
+func init() { file_recipe_v1_recipe_proto_init() }
+func file_recipe_v1_recipe_proto_init() {
+	if File_recipe_v1_recipe_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_recipe_recipe_proto_rawDesc), len(file_recipe_recipe_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_recipe_v1_recipe_proto_rawDesc), len(file_recipe_v1_recipe_proto_rawDesc)),
 			NumEnums:      1,
 			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_recipe_recipe_proto_goTypes,
-		DependencyIndexes: file_recipe_recipe_proto_depIdxs,
-		EnumInfos:         file_recipe_recipe_proto_enumTypes,
-		MessageInfos:      file_recipe_recipe_proto_msgTypes,
+		GoTypes:           file_recipe_v1_recipe_proto_goTypes,
+		DependencyIndexes: file_recipe_v1_recipe_proto_depIdxs,
+		EnumInfos:         file_recipe_v1_recipe_proto_enumTypes,
+		MessageInfos:      file_recipe_v1_recipe_proto_msgTypes,
 	}.Build()
-	File_recipe_recipe_proto = out.File
-	file_recipe_recipe_proto_goTypes = nil
-	file_recipe_recipe_proto_depIdxs = nil
+	File_recipe_v1_recipe_proto = out.File
+	file_recipe_v1_recipe_proto_goTypes = nil
+	file_recipe_v1_recipe_proto_depIdxs = nil
 }

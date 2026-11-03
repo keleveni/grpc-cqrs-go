@@ -82,8 +82,8 @@ Feature-first + CQRS パターンを採用し、ドメイン（フィーチャ�
 ├── Dockerfile                      # app イメージ (multi-stage / distroless / arm64)
 ├── Dockerfile.migrate              # migrate イメージ (Atlas + migrations 同梱)
 ├── .github/workflows/build.yml     # Release publish で GHCR へ arm64 push
-├── pkg/pb/                         # Protobuf 生成コード (recipe/share/user)
-├── proto/                          # Protobuf 定義 (recipe/share/user)
+├── pkg/pb/                         # Protobuf 生成コード (recipe/share/user の v1)
+├── proto/                          # Protobuf 定義 (<name>/v1/<name>.proto)
 ├── atlas.hcl                       # Atlas 設定
 ├── buf.yaml / buf.gen.yaml         # Buf 設定
 ├── compose.yaml                    # Docker Compose
@@ -215,7 +215,7 @@ INFO=$(printf '{"sub":"%s"}' "$SUB" | basenc --base64url | tr -d '=')
 grpcurl -plaintext -H "x-endpoint-api-userinfo: $INFO" -d '{
   "name": "Kodai",
   "email": "kodai@example.com"
-}' localhost:50051 user.UserService/CreateUser
+}' localhost:50051 user.v1.UserService/CreateUser
 ```
 
 ### RecipeService
@@ -228,7 +228,7 @@ grpcurl -plaintext -H "x-endpoint-api-userinfo: $INFO" -d '{
 grpcurl -plaintext -H "x-endpoint-api-userinfo: $INFO" -d '{
   "title": "カレーライス",
   "description": "スパイスから作る本格カレー"
-}' localhost:50051 recipe.RecipeService/CreateRecipe
+}' localhost:50051 recipe.v1.RecipeService/CreateRecipe
 ```
 
 #### UpdateRecipe（要認証・editor 以上）
@@ -238,7 +238,7 @@ grpcurl -plaintext -H "x-endpoint-api-userinfo: $INFO" -d '{
   "id": "<recipe_id>",
   "title": "カレーライス 改",
   "description": "改良版"
-}' localhost:50051 recipe.RecipeService/UpdateRecipe
+}' localhost:50051 recipe.v1.RecipeService/UpdateRecipe
 ```
 
 #### ChangeVisibility（要認証・owner のみ）
@@ -247,7 +247,7 @@ grpcurl -plaintext -H "x-endpoint-api-userinfo: $INFO" -d '{
 grpcurl -plaintext -H "x-endpoint-api-userinfo: $INFO" -d '{
   "id": "<recipe_id>",
   "visibility": "VISIBILITY_PUBLIC"
-}' localhost:50051 recipe.RecipeService/ChangeVisibility
+}' localhost:50051 recipe.v1.RecipeService/ChangeVisibility
 ```
 
 #### GetRecipe
@@ -257,7 +257,7 @@ visibility に応じて認可されます（public は誰でも / private は ow
 ```bash
 grpcurl -plaintext -H "x-endpoint-api-userinfo: $INFO" -d '{
   "id": "<recipe_id>"
-}' localhost:50051 recipe.RecipeService/GetRecipe
+}' localhost:50051 recipe.v1.RecipeService/GetRecipe
 ```
 
 レスポンス:
@@ -288,7 +288,7 @@ grpcurl -plaintext -H "x-endpoint-api-userinfo: $INFO" -d '{
   "recipe_id": "<recipe_id>",
   "target_user_id": "<user_id>",
   "relation": "viewer"
-}' localhost:50051 share.ShareService/ShareRecipe
+}' localhost:50051 share.v1.ShareService/ShareRecipe
 ```
 
 ### サービス一覧の確認

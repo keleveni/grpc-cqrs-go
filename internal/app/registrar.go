@@ -1,9 +1,9 @@
 package app
 
 import (
-	recipepb "github.com/kodaikumatani/grpc-cqrs-go/pkg/pb/recipe"
-	sharepb "github.com/kodaikumatani/grpc-cqrs-go/pkg/pb/share"
-	userpb "github.com/kodaikumatani/grpc-cqrs-go/pkg/pb/user"
+	recipepb "github.com/kodaikumatani/grpc-cqrs-go/pkg/pb/recipe/v1"
+	sharepb "github.com/kodaikumatani/grpc-cqrs-go/pkg/pb/share/v1"
+	userpb "github.com/kodaikumatani/grpc-cqrs-go/pkg/pb/user/v1"
 	"google.golang.org/grpc"
 )
 

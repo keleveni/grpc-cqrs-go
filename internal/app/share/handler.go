@@ -7,9 +7,8 @@ import (
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/authz"
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/grpcerr"
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/identity"
-	pb "github.com/kodaikumatani/grpc-cqrs-go/pkg/pb/share"
+	pb "github.com/kodaikumatani/grpc-cqrs-go/pkg/pb/share/v1"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 const (
@@ -30,7 +29,7 @@ func NewHandler(command *Command) pb.ShareServiceServer {
 func (h *handler) ShareRecipe(
 	ctx context.Context,
 	in *pb.ShareRecipeRequest,
-) (*emptypb.Empty, error) {
+) (*pb.ShareRecipeResponse, error) {
 	relation, err := authz.NewRelation(in.GetRelation())
 	if err != nil {
 		return nil, grpcerr.WithStatus(err, codes.InvalidArgument, msgInvalidRelation)
@@ -52,5 +51,5 @@ func (h *handler) ShareRecipe(
 		return nil, err
 	}
 
-	return &emptypb.Empty{}, nil
+	return &pb.ShareRecipeResponse{}, nil
 }

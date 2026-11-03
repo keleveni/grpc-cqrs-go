@@ -9,9 +9,9 @@ name: grpc-cqrs-go.endpoints.<PROJECT_ID>.cloud.goog
 title: grpc-cqrs-go gRPC API
 
 apis:
-  - name: recipe.RecipeService
-  - name: user.UserService
-  - name: share.ShareService
+  - name: recipe.v1.RecipeService
+  - name: user.v1.UserService
+  - name: share.v1.ShareService
 
 # Firebase Authentication の ID トークンを検証
 authentication:
@@ -22,13 +22,13 @@ authentication:
       audiences: "<PROJECT_ID>"
   rules:
     # 全メソッド認証必須（検証は ESPv2 が実施し、UID を X-Endpoint-API-UserInfo で backend へ）
-    - selector: recipe.RecipeService.*
+    - selector: recipe.v1.RecipeService.*
       requirements:
         - provider_id: firebase
-    - selector: user.UserService.*
+    - selector: user.v1.UserService.*
       requirements:
         - provider_id: firebase
-    - selector: share.ShareService.*
+    - selector: share.v1.ShareService.*
       requirements:
         - provider_id: firebase
     # 備考: public レシピを未認証で GetRecipe させたい場合はここに
@@ -36,9 +36,9 @@ authentication:
 
 usage:
   rules:
-    - selector: recipe.RecipeService.*
+    - selector: recipe.v1.RecipeService.*
       allow_unregistered_calls: true
-    - selector: user.UserService.*
+    - selector: user.v1.UserService.*
       allow_unregistered_calls: true
-    - selector: share.ShareService.*
+    - selector: share.v1.ShareService.*
       allow_unregistered_calls: true

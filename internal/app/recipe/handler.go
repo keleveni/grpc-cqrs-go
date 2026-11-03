@@ -11,7 +11,7 @@ import (
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/app/recipe/query"
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/grpcerr"
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/identity"
-	pb "github.com/kodaikumatani/grpc-cqrs-go/pkg/pb/recipe"
+	pb "github.com/kodaikumatani/grpc-cqrs-go/pkg/pb/recipe/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
