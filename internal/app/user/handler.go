@@ -13,7 +13,6 @@ import (
 )
 
 const (
-	msgUnauthenticated   = "unauthenticated"
 	msgUserAlreadyExists = "user already exists"
 )
 
@@ -32,7 +31,7 @@ func (h *handler) CreateUser(
 ) (*pb.CreateUserResponse, error) {
 	id, err := identity.UserID(ctx)
 	if err != nil {
-		return nil, grpcerr.WithStatus(err, codes.Unauthenticated, msgUnauthenticated)
+		return nil, err
 	}
 
 	result, err := h.command.CreateUser(ctx, id, in.GetName(), in.GetEmail())

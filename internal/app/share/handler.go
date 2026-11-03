@@ -12,7 +12,6 @@ import (
 )
 
 const (
-	msgUnauthenticated = "unauthenticated"
 	msgAlreadyShared   = "recipe already shared with this user"
 	msgInvalidRelation = "invalid relation"
 )
@@ -37,7 +36,7 @@ func (h *handler) ShareRecipe(
 
 	userID, err := identity.UserID(ctx)
 	if err != nil {
-		return nil, grpcerr.WithStatus(err, codes.Unauthenticated, msgUnauthenticated)
+		return nil, err
 	}
 
 	if err := h.command.ShareRecipe(ctx,

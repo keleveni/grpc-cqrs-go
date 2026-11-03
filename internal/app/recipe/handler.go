@@ -16,7 +16,6 @@ import (
 )
 
 const (
-	msgUnauthenticated   = "unauthenticated"
 	msgInvalidVisibility = "invalid visibility"
 	msgRecipeNotFound    = "recipe not found"
 )
@@ -43,7 +42,7 @@ func (h *handler) CreateRecipe(
 ) (*pb.CreateRecipeResponse, error) {
 	userID, err := identity.UserID(ctx)
 	if err != nil {
-		return nil, grpcerr.WithStatus(err, codes.Unauthenticated, msgUnauthenticated)
+		return nil, err
 	}
 
 	result, err := h.command.CreateRecipe(ctx,
@@ -70,7 +69,7 @@ func (h *handler) UpdateRecipe(
 
 	userID, err := identity.UserID(ctx)
 	if err != nil {
-		return nil, grpcerr.WithStatus(err, codes.Unauthenticated, msgUnauthenticated)
+		return nil, err
 	}
 
 	if err := h.command.UpdateRecipe(ctx, userID, recipeID, in.GetTitle(), in.GetDescription()); err != nil {
@@ -91,7 +90,7 @@ func (h *handler) GetRecipe(
 
 	userID, err := identity.UserID(ctx)
 	if err != nil {
-		return nil, grpcerr.WithStatus(err, codes.Unauthenticated, msgUnauthenticated)
+		return nil, err
 	}
 
 	result, err := h.query.GetRecipe(ctx, userID, id)
@@ -136,7 +135,7 @@ func (h *handler) ChangeVisibility(
 
 	userID, err := identity.UserID(ctx)
 	if err != nil {
-		return nil, grpcerr.WithStatus(err, codes.Unauthenticated, msgUnauthenticated)
+		return nil, err
 	}
 
 	if err := h.command.ChangeVisibility(ctx, userID, id, visibility); err != nil {

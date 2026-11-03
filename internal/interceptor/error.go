@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/authz"
+	"github.com/kodaikumatani/grpc-cqrs-go/internal/identity"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
@@ -20,6 +21,7 @@ const (
 // ErrorHandlingUnaryInterceptor は handler が返したエラーを一元的に処理する。
 //   - handler が付けた status（既知エラー）: cause をログに残し、安全な status を返す
 //   - 横断的な authz エラー: PermissionDenied に変換
+//   - 横断的な identity エラー（ctx に認証済みユーザーがいない）: Unauthenticated に変換
 //   - 未変換の生エラー（想定外の内部エラー）: cause を error ログに残し、client には汎用文言
 //
 // ログレベルは gRPC コードで決める（想定内のクライアントエラーは info、サーバ起因のみ
@@ -46,6 +48,13 @@ func ErrorHandlingUnaryInterceptor() grpc.UnaryServerInterceptor {
 		if errors.Is(err, authz.ErrPermissionDenied) {
 			logStatus(ctx, codes.PermissionDenied, err, info.FullMethod, "permission denied")
 			return resp, status.Error(codes.PermissionDenied, msgPermissionDenied)
+		}
+
+		// 通常は GatewayAuthUnaryInterceptor が先に弾くので、ここに来るのは認証の
+		// 除外設定と handler の想定がずれたとき。各 handler で変換を繰り返さないよう一元化する。
+		if errors.Is(err, identity.ErrUnauthenticated) {
+			logStatus(ctx, codes.Unauthenticated, err, info.FullMethod, "unauthenticated")
+			return resp, status.Error(codes.Unauthenticated, msgUnauthenticated)
 		}
 
 		log.Ctx(ctx).Error().Err(err).Str("method", info.FullMethod).Msg("unhandled error")
