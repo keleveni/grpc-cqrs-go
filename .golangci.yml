@@ -7,6 +7,8 @@ linters:
   settings:
     # 依存の向きのルール。app → db の逆流は「db が app の Storage を実装する」構造による
     # import cycle 禁止で既に防げているので、ここではそれで防げない分だけを書く。
+    # 機能を追加しても設定を直さずに済むよう、パターンで書けるルールだけにしている
+    # （command ⇔ query の相互依存や db → handler はレビューで防ぐ）。
     depguard:
       rules:
         entity:
@@ -30,23 +32,6 @@ linters:
             - pkg: github.com/kodaikumatani/grpc-cqrs-go/internal/db
               desc: 永続化は Storage インターフェース越しに使う
 
-        # command と query は互いに依存しない（CQRS）。
-        # depguard の deny はワイルドカード不可なので、query を持つ機能ごとに書く。
-        recipe-command:
-          list-mode: lax
-          files:
-            - "**/internal/app/recipe/command/**"
-          deny:
-            - pkg: github.com/kodaikumatani/grpc-cqrs-go/internal/app/recipe/query
-              desc: command は query に依存しない
-        recipe-query:
-          list-mode: lax
-          files:
-            - "**/internal/app/recipe/query/**"
-          deny:
-            - pkg: github.com/kodaikumatani/grpc-cqrs-go/internal/app/recipe/command
-              desc: query は command に依存しない
-
         authz:
           list-mode: lax
           files:
@@ -64,11 +49,3 @@ linters:
           deny:
             - pkg: github.com/kodaikumatani/grpc-cqrs-go/pkg/pb
               desc: db は pb に依存しない
-            - pkg: github.com/kodaikumatani/grpc-cqrs-go/internal/app$
-              desc: db は handler 層に依存しない
-            - pkg: github.com/kodaikumatani/grpc-cqrs-go/internal/app/recipe$
-              desc: db は handler 層に依存しない
-            - pkg: github.com/kodaikumatani/grpc-cqrs-go/internal/app/user$
-              desc: db は handler 層に依存しない
-            - pkg: github.com/kodaikumatani/grpc-cqrs-go/internal/app/share$
-              desc: db は handler 層に依存しない

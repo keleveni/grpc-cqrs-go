@@ -104,7 +104,7 @@ handler.go          ← gRPC リクエストの受付・バリデーション・
 ```
 
 - Storage インターフェースにより app 層と DB 層が疎結合（依存の向きは `db → app`。逆向きは import cycle になるためコンパイルで防がれる）
-- それ以外の依存の向き（entity / command / query が pb や db に依存しない、command と query が互いに依存しない など）は `.golangci.yml` の depguard で検査する
+- それ以外の依存の向き（entity / command / query / authz が pb や db に依存しない など）は `.golangci.yml` の depguard で検査する。command と query が互いに依存しないことはレビューで守る
 - DB 層はエンティティ単位（`db/recipe`, `db/user`, `db/tuple`）で実装。CQRS の read/write の差は app 側の interface が表現する
 - エンティティは非公開フィールド + コンストラクタ + getter でカプセル化（不正な生成を型で防止）
 
