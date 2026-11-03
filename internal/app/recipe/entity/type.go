@@ -35,7 +35,8 @@ func NewRecipe(
 	}
 }
 
-func (r *Recipe) Update(title, description string) {
+// Edit はレシピの内容（タイトルと説明）を編集する。
+func (r *Recipe) Edit(title, description string) {
 	r.title = title
 	r.description = description
 }

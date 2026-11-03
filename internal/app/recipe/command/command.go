@@ -76,7 +76,7 @@ func (u *Command) Update(
 		return err
 	}
 
-	recipe.Update(title, description)
+	recipe.Edit(title, description)
 
 	if err := u.storage.Update(ctx, recipe); err != nil {
 		return err
