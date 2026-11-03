@@ -12,6 +12,12 @@ type Tuple struct {
 	userID     string
 }
 
+func (t *Tuple) ID() uuid.UUID          { return t.id }
+func (t *Tuple) ObjectType() ObjectType { return t.objectType }
+func (t *Tuple) ObjectID() string       { return t.objectID }
+func (t *Tuple) Relation() Relation     { return t.relation }
+func (t *Tuple) UserID() string         { return t.userID }
+
 func NewTuple(
 	id uuid.UUID,
 	objectType ObjectType,
@@ -27,12 +33,6 @@ func NewTuple(
 		userID:     userID,
 	}
 }
-
-func (t *Tuple) ID() uuid.UUID          { return t.id }
-func (t *Tuple) ObjectType() ObjectType { return t.objectType }
-func (t *Tuple) ObjectID() string       { return t.objectID }
-func (t *Tuple) Relation() Relation     { return t.relation }
-func (t *Tuple) UserID() string         { return t.userID }
 
 type ObjectType string
 
