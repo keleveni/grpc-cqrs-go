@@ -22,10 +22,7 @@ type GetRecipeRecord struct {
 	Visibility  entity.Visibility
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
-	// User はレシピの作成者
-	User struct {
-		ID    string
-		Name  string
-		Email string
-	}
+	UserID      string
+	UserName    string
+	UserEmail   string
 }

@@ -51,9 +51,9 @@ func (q *Query) GetRecipe(
 		CreatedAt:   record.CreatedAt,
 		UpdatedAt:   record.UpdatedAt,
 	}
-	result.User.ID = record.User.ID
-	result.User.Name = record.User.Name
-	result.User.Email = record.User.Email
+	result.User.ID = record.UserID
+	result.User.Name = record.UserName
+	result.User.Email = record.UserEmail
 
 	return result, nil
 }
