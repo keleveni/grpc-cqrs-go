@@ -59,3 +59,25 @@ func TestCanViewRecipe(t *testing.T) {
 		})
 	}
 }
+
+func TestCanManageRecipe(t *testing.T) {
+	tests := []struct {
+		name    string
+		storage fakeStorage
+		want    error
+	}{
+		{name: "owner は manage 権限を持つ", storage: fakeStorage{relations: []Relation{RelOwner}}, want: nil},
+		{name: "editor は manage 権限を持たない", storage: fakeStorage{relations: []Relation{RelEditor}}, want: ErrPermissionDenied},
+		{name: "viewer は manage 権限を持たない", storage: fakeStorage{relations: []Relation{RelViewer}}, want: ErrPermissionDenied},
+		{name: "storage のエラーはそのまま返す", storage: fakeStorage{listErr: errBoom}, want: errBoom},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := NewChecker(tt.storage).CanManageRecipe(context.Background(), "user", "recipe")
+			if !errors.Is(got, tt.want) {
+				t.Fatalf("want %v, got %v", tt.want, got)
+			}
+		})
+	}
+}

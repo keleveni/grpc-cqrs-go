@@ -174,6 +174,7 @@ Relationship-Based Access Control を採用。
 - **Permission**: `map[ObjectType]map[Permission][]Relation` で action → 許可 relation を定義
 - view の認可は値オブジェクト `entity.Visibility.CanView` が判定し（public は誰でも / private は owner / restricted は view 権限）、relation の判定は authz に問い合わせる
 - edit の認可は `entity.Visibility.CanEdit` が判定する（private は owner / それ以外は editor 以上。command からは `Recipe.CanBeEditedBy` 経由で呼ぶ）。share と公開範囲の変更は owner だけ（tuple で判定）
+- entity は relation（owner 等）を直接見ず、権限（view / edit / manage）だけを authz に問い合わせる。どの relation がどの権限を与えるかは authz の `permissionRelations` だけが決める（manage = owner）
 - 公開範囲は tuple（関係）ではなくレシピの属性。認可は「tuple による関係（ReBAC）」と「公開範囲という属性」の組み合わせで、組み合わせる場所は値オブジェクト `Visibility` のメソッド（読み取り側はエンティティを作らずに判定できる）
 - authz は tuple による relation の判定だけを持ち、機能（`internal/app`）には依存しない
 

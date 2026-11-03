@@ -85,6 +85,7 @@ const (
 	PermEdit
 	PermDelete
 	PermShare
+	PermManage
 )
 
 var permissionRelations = map[ObjectType]map[Permission][]Relation{
@@ -93,5 +94,7 @@ var permissionRelations = map[ObjectType]map[Permission][]Relation{
 		PermEdit:   {RelEditor, RelOwner},
 		PermDelete: {RelOwner},
 		PermShare:  {RelOwner},
+		// manage はレシピの管理（private なレシピへのアクセス、公開範囲の変更）
+		PermManage: {RelOwner},
 	},
 }

@@ -92,18 +92,18 @@ func (u *Command) UpdateRecipe(
 	return nil
 }
 
-// ChangeVisibility はレシピの公開範囲を変更する。owner だけが変更できる。
+// ChangeVisibility はレシピの公開範囲を変更する。manage 権限（owner）を持つユーザーだけが変更できる。
 //
 // 返しうるエラー:
-//   - authz.ErrPermissionDenied: owner ではない（レシピが存在しない場合もこちらになる）
-//   - entity.ErrRecipeNotFound: owner の tuple はあるがレシピが存在しない
+//   - authz.ErrPermissionDenied: manage 権限がない（レシピが存在しない場合もこちらになる）
+//   - entity.ErrRecipeNotFound: manage 権限はあるがレシピが存在しない
 func (u *Command) ChangeVisibility(
 	ctx context.Context,
 	userID string,
 	id uuid.UUID,
 	visibility entity.Visibility,
 ) error {
-	if err := u.checker.IsRecipeOwner(ctx, userID, id.String()); err != nil {
+	if err := u.checker.CanManageRecipe(ctx, userID, id.String()); err != nil {
 		return err
 	}
 

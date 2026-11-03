@@ -26,8 +26,9 @@ func (c Checker) CanShareRecipe(ctx context.Context, userID, recipeID string) er
 	return c.hasPermission(ctx, userID, ObjectRecipe, recipeID, PermShare)
 }
 
-func (c Checker) IsRecipeOwner(ctx context.Context, userID, recipeID string) error {
-	return c.hasRelation(ctx, userID, ObjectRecipe, recipeID, RelOwner)
+// CanManageRecipe は userID がレシピの manage 権限（owner）を持つかを tuple で判定する。
+func (c Checker) CanManageRecipe(ctx context.Context, userID, recipeID string) error {
+	return c.hasPermission(ctx, userID, ObjectRecipe, recipeID, PermManage)
 }
 
 func (c Checker) hasPermission(
@@ -52,32 +53,6 @@ func (c Checker) hasPermission(
 			if relation == tuple.Relation() {
 				return nil
 			}
-		}
-	}
-
-	return ErrPermissionDenied
-}
-
-func (c Checker) hasRelation(
-	ctx context.Context,
-	userID string,
-	objectType ObjectType,
-	objectID string,
-	relation Relation,
-) error {
-	tuples, err := c.storage.ListRelations(
-		ctx,
-		objectType,
-		objectID,
-		userID,
-	)
-	if err != nil {
-		return err
-	}
-
-	for _, tuple := range tuples {
-		if relation == tuple.Relation() {
-			return nil
 		}
 	}
 

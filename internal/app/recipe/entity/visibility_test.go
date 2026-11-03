@@ -8,16 +8,16 @@ import (
 
 var errDenied = errors.New("denied")
 
-// fakeRelations は owner / view 権限の有無を差し替えられる Relations のスタブ。
+// fakeRelations は manage / view / edit 権限の有無を差し替えられる Relations のスタブ。
 // 呼ばれたメソッドを記録し、公開範囲ごとに正しい問い合わせをしているかを確かめる。
 type fakeRelations struct {
-	owner, viewer, editor bool
-	called                []string
+	manager, viewer, editor bool
+	called                  []string
 }
 
-func (f *fakeRelations) IsRecipeOwner(context.Context, string, string) error {
-	f.called = append(f.called, "IsRecipeOwner")
-	if f.owner {
+func (f *fakeRelations) CanManageRecipe(context.Context, string, string) error {
+	f.called = append(f.called, "CanManageRecipe")
+	if f.manager {
 		return nil
 	}
 	return errDenied
@@ -54,18 +54,18 @@ func TestVisibility_CanView(t *testing.T) {
 			wantCalled: nil,
 		},
 		{
-			name:       "private は owner なら閲覧できる",
+			name:       "private は manage 権限があれば閲覧できる",
 			visibility: VisibilityPrivate,
-			rels:       fakeRelations{owner: true},
+			rels:       fakeRelations{manager: true},
 			want:       nil,
-			wantCalled: []string{"IsRecipeOwner"},
+			wantCalled: []string{"CanManageRecipe"},
 		},
 		{
-			name:       "private は view 権限があっても owner でなければ閲覧できない",
+			name:       "private は view 権限があっても manage 権限がなければ閲覧できない",
 			visibility: VisibilityPrivate,
 			rels:       fakeRelations{viewer: true},
 			want:       errDenied,
-			wantCalled: []string{"IsRecipeOwner"},
+			wantCalled: []string{"CanManageRecipe"},
 		},
 		{
 			name:       "restricted は view 権限があれば閲覧できる",
@@ -83,7 +83,7 @@ func TestVisibility_CanView(t *testing.T) {
 		{
 			name:       "未知の公開範囲は ErrInvalidVisibility",
 			visibility: Visibility{},
-			rels:       fakeRelations{owner: true, viewer: true},
+			rels:       fakeRelations{manager: true, viewer: true},
 			want:       ErrInvalidVisibility,
 			wantCalled: nil,
 		},
@@ -116,18 +116,18 @@ func TestVisibility_CanEdit(t *testing.T) {
 		wantCalled []string
 	}{
 		{
-			name:       "private は owner なら編集できる",
+			name:       "private は manage 権限があれば編集できる",
 			visibility: VisibilityPrivate,
-			rels:       fakeRelations{owner: true},
+			rels:       fakeRelations{manager: true},
 			want:       nil,
-			wantCalled: []string{"IsRecipeOwner"},
+			wantCalled: []string{"CanManageRecipe"},
 		},
 		{
-			name:       "private は editor でも owner でなければ編集できない",
+			name:       "private は edit 権限があっても manage 権限がなければ編集できない",
 			visibility: VisibilityPrivate,
 			rels:       fakeRelations{editor: true},
 			want:       errDenied,
-			wantCalled: []string{"IsRecipeOwner"},
+			wantCalled: []string{"CanManageRecipe"},
 		},
 		{
 			name:       "restricted は edit 権限があれば編集できる",
@@ -146,7 +146,7 @@ func TestVisibility_CanEdit(t *testing.T) {
 		{
 			name:       "未知の公開範囲は ErrInvalidVisibility",
 			visibility: Visibility{},
-			rels:       fakeRelations{owner: true, editor: true},
+			rels:       fakeRelations{manager: true, editor: true},
 			want:       ErrInvalidVisibility,
 			wantCalled: nil,
 		},
