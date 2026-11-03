@@ -54,8 +54,7 @@ func (q *Query) GetRecipe(
 		return nil, err
 	}
 
-	recipe := entity.NewRecipe(row.ID, row.UserID, row.Title, row.Description, visibility)
-	if err := recipe.CanBeViewedBy(ctx, q.checker, userID); err != nil {
+	if err := visibility.CanView(ctx, q.checker, userID, id.String()); err != nil {
 		return nil, err
 	}
 

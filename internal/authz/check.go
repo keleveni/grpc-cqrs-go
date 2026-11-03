@@ -13,7 +13,7 @@ func NewChecker(storage Storage) Checker {
 }
 
 // CanViewRecipe は userID がレシピの view 権限（viewer / editor / owner）を持つかを tuple で判定する。
-// 公開範囲（Visibility）に応じた判定は recipe の domain service（entity.Recipe.CanBeViewedBy）が行う。
+// 公開範囲（Visibility）に応じた判定は recipe の domain service（entity.Visibility.CanView）が行う。
 func (c Checker) CanViewRecipe(ctx context.Context, userID, recipeID string) error {
 	return c.hasPermission(ctx, userID, ObjectRecipe, recipeID, PermView)
 }

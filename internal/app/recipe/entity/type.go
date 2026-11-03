@@ -53,41 +53,9 @@ func (r *Recipe) ChangeVisibility(v Visibility) {
 	r.visibility = v
 }
 
-// CanBeViewedBy は公開範囲に応じて、userID がこのレシピを閲覧できるかを判定する。
-//   - public:     誰でも閲覧できる
-//   - private:    owner だけが閲覧できる
-//   - restricted: view 権限を持つユーザーだけが閲覧できる
-//
-// owner は tuple で管理していて複数いてよいので、作成者（userID）との比較ではなく
-// RelationChecker に問い合わせる。権限がなければ RelationChecker のエラーをそのまま返し、
-// 未知の公開範囲は ErrInvalidVisibility を返す。
-func (r *Recipe) CanBeViewedBy(ctx context.Context, rc RelationChecker, userID string) error {
-	switch r.visibility {
-	case VisibilityPublic:
-		return nil
-	case VisibilityPrivate:
-		return rc.IsRecipeOwner(ctx, userID, r.id.String())
-	case VisibilityRestricted:
-		return rc.CanViewRecipe(ctx, userID, r.id.String())
-	default:
-		return ErrInvalidVisibility
-	}
-}
-
-// CanBeEditedBy は公開範囲に応じて、userID がこのレシピを編集できるかを判定する。
-//   - private:            owner だけが編集できる（閲覧と同じく owner 以外には閉じる）
-//   - public / restricted: 編集権限（editor / owner）を持つユーザーが編集できる
-//
-// 権限がなければ RelationChecker のエラーをそのまま返し、未知の公開範囲は ErrInvalidVisibility を返す。
+// CanBeEditedBy は userID がこのレシピを編集できるかを判定する（Visibility.CanEdit に委ねる）。
 func (r *Recipe) CanBeEditedBy(ctx context.Context, rc RelationChecker, userID string) error {
-	switch r.visibility {
-	case VisibilityPrivate:
-		return rc.IsRecipeOwner(ctx, userID, r.id.String())
-	case VisibilityPublic, VisibilityRestricted:
-		return rc.CanEditRecipe(ctx, userID, r.id.String())
-	default:
-		return ErrInvalidVisibility
-	}
+	return r.visibility.CanEdit(ctx, rc, userID, r.id.String())
 }
 
 // RelationChecker は閲覧・編集権限の判定に必要な、ユーザーとレシピの関係の問い合わせ。
@@ -121,3 +89,39 @@ func NewVisibility(s string) (Visibility, error) {
 }
 
 func (v Visibility) String() string { return v.value }
+
+// CanView は公開範囲に応じて、userID が recipeID のレシピを閲覧できるかを判定する。
+//   - public:     誰でも閲覧できる
+//   - private:    owner だけが閲覧できる
+//   - restricted: view 権限を持つユーザーだけが閲覧できる
+//
+// owner は tuple で管理していて複数いてよいので、作成者との比較ではなく RelationChecker に問い合わせる。
+// 権限がなければ RelationChecker のエラーをそのまま返し、未知の公開範囲は ErrInvalidVisibility を返す。
+func (v Visibility) CanView(ctx context.Context, rc RelationChecker, userID, recipeID string) error {
+	switch v {
+	case VisibilityPublic:
+		return nil
+	case VisibilityPrivate:
+		return rc.IsRecipeOwner(ctx, userID, recipeID)
+	case VisibilityRestricted:
+		return rc.CanViewRecipe(ctx, userID, recipeID)
+	default:
+		return ErrInvalidVisibility
+	}
+}
+
+// CanEdit は公開範囲に応じて、userID が recipeID のレシピを編集できるかを判定する。
+//   - private:            owner だけが編集できる（閲覧と同じく owner 以外には閉じる）
+//   - public / restricted: 編集権限（editor / owner）を持つユーザーが編集できる
+//
+// 権限がなければ RelationChecker のエラーをそのまま返し、未知の公開範囲は ErrInvalidVisibility を返す。
+func (v Visibility) CanEdit(ctx context.Context, rc RelationChecker, userID, recipeID string) error {
+	switch v {
+	case VisibilityPrivate:
+		return rc.IsRecipeOwner(ctx, userID, recipeID)
+	case VisibilityPublic, VisibilityRestricted:
+		return rc.CanEditRecipe(ctx, userID, recipeID)
+	default:
+		return ErrInvalidVisibility
+	}
+}

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"testing"
-	"uuid"
 )
 
 var errDenied = errors.New("denied")
@@ -40,7 +39,7 @@ func (f *fakeRelationChecker) CanEditRecipe(context.Context, string, string) err
 	return errDenied
 }
 
-func TestRecipe_CanBeViewedBy(t *testing.T) {
+func TestVisibility_CanView(t *testing.T) {
 	tests := []struct {
 		name       string
 		visibility Visibility
@@ -92,9 +91,7 @@ func TestRecipe_CanBeViewedBy(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			recipe := NewRecipe(uuid.NewV7(), "author", "title", "description", tt.visibility)
-
-			got := recipe.CanBeViewedBy(context.Background(), &tt.checker, "user")
+			got := tt.visibility.CanView(context.Background(), &tt.checker, "user", "recipe")
 			if !errors.Is(got, tt.want) {
 				t.Fatalf("want %v, got %v", tt.want, got)
 			}
@@ -110,7 +107,7 @@ func TestRecipe_CanBeViewedBy(t *testing.T) {
 	}
 }
 
-func TestRecipe_CanBeEditedBy(t *testing.T) {
+func TestVisibility_CanEdit(t *testing.T) {
 	tests := []struct {
 		name       string
 		visibility Visibility
@@ -157,9 +154,7 @@ func TestRecipe_CanBeEditedBy(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			recipe := NewRecipe(uuid.NewV7(), "author", "title", "description", tt.visibility)
-
-			got := recipe.CanBeEditedBy(context.Background(), &tt.checker, "user")
+			got := tt.visibility.CanEdit(context.Background(), &tt.checker, "user", "recipe")
 			if !errors.Is(got, tt.want) {
 				t.Fatalf("want %v, got %v", tt.want, got)
 			}
