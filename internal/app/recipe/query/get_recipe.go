@@ -10,10 +10,27 @@ import (
 
 // getRecipeStorage は GetRecipe ユースケースが必要とする永続化。
 type getRecipeStorage interface {
-	GetRecipe(ctx context.Context, id uuid.UUID) (*GetRecipeResult, error)
+	GetRecipe(ctx context.Context, id uuid.UUID) (*GetRecipeRecord, error)
 }
 
-// GetRecipeResult は GetRecipe の読み取りモデル。
+// GetRecipeRecord は GetRecipe のために Storage が返すデータ。
+// ユースケースが GetRecipeResult に変換するので、呼び出し側に返す形とは独立に変えられる。
+type GetRecipeRecord struct {
+	ID          string
+	Title       string
+	Description string
+	Visibility  entity.Visibility
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	// User はレシピの作成者
+	User struct {
+		ID    string
+		Name  string
+		Email string
+	}
+}
+
+// GetRecipeResult は GetRecipe の読み取りモデル（呼び出し側に返す形）。
 type GetRecipeResult struct {
 	ID          string
 	Title       string
@@ -39,14 +56,26 @@ func (q *Query) GetRecipe(
 	userID string,
 	id uuid.UUID,
 ) (*GetRecipeResult, error) {
-	result, err := q.storage.GetRecipe(ctx, id)
+	record, err := q.storage.GetRecipe(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := q.checker.CanViewRecipe(ctx, userID, id.String(), result.Visibility); err != nil {
+	if err := q.checker.CanViewRecipe(ctx, userID, id.String(), record.Visibility); err != nil {
 		return nil, err
 	}
+
+	result := &GetRecipeResult{
+		ID:          record.ID,
+		Title:       record.Title,
+		Description: record.Description,
+		Visibility:  record.Visibility,
+		CreatedAt:   record.CreatedAt,
+		UpdatedAt:   record.UpdatedAt,
+	}
+	result.User.ID = record.User.ID
+	result.User.Name = record.User.Name
+	result.User.Email = record.User.Email
 
 	return result, nil
 }

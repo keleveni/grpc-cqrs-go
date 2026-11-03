@@ -106,6 +106,7 @@ handler.go          ← gRPC リクエストの受付・pb ⇔ ドメインの�
 - Storage インターフェースにより app 層と DB 層が疎結合（依存の向きは `db → app`。逆向きは import cycle になるためコンパイルで防がれる）
 - それ以外の依存の向き（entity / command / query / authz が pb や db に依存しない など）は `.golangci.yml` の depguard で検査する。command と query が互いに依存しないことはレビューで守る
 - query はユースケースごとにファイルを分け（`query/get_recipe.go` 等）、そのユースケースが使う Storage のメソッド・読み取りモデル・処理を 1 ファイルに置く。`Storage` はそれらをまとめるだけ
+- Storage は `XxxRecord`（永続化から取ってきたデータ）を返し、ユースケースが `XxxResult`（呼び出し側に返す形）に変換する。権限など永続化以外の情報を足すときも Storage を変えずに済む
 - DB 層はエンティティ単位（`db/recipe`, `db/user`, `db/tuple`）で実装。CQRS の read/write の差は app 側の interface が表現する
 - エンティティは非公開フィールドでカプセル化する（[エンティティのカプセル化](#エンティティのカプセル化) 参照）
 
