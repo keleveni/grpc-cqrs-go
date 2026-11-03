@@ -2,7 +2,6 @@ package query
 
 import (
 	"time"
-	"uuid"
 
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/app/recipe/entity"
 )
@@ -23,8 +22,8 @@ type GetRecipeResult struct {
 // ListRecipesResult は ListRecipes の読み取りモデル。
 type ListRecipesResult struct {
 	Recipes []ListRecipesItem
-	// Next は次のページの起点（このレシピより古いものが次のページ）。次のページがなければ uuid.Nil()。
-	Next uuid.UUID
+	// Next は次のページの起点。ListRecipes の after に渡す。次のページがなければ空。
+	Next string
 }
 
 // ListRecipesItem は一覧の 1 件。

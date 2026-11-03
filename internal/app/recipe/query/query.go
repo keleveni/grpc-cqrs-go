@@ -16,6 +16,9 @@ import (
 //
 // 読み取りは守るべき不変条件がないので、Storage インタフェースを挟まずに
 // sqlc で生成したクエリを直接使う（薄い読み取り層）。
+// ErrInvalidCursor は一覧の起点（after）が読めないとき。
+var ErrInvalidCursor = errors.New("invalid cursor")
+
 type Query struct {
 	queries *gen.Queries
 	checker authz.Checker
@@ -71,19 +74,29 @@ func (q *Query) GetRecipe(
 	}, nil
 }
 
-// ListRecipes は userID が閲覧できるレシピを、before より古いものから新しい順に最大 limit 件返す。
-// 最初のページは before に uuid.Max() を渡す。
+// ListRecipes は userID が閲覧できるレシピを新しい順に最大 limit 件返す。
+// after は前のページの ListRecipesResult.Next（このレシピより古いものを返す）。空なら最初のページ。
 //
 // 閲覧できるかの条件は SQL（ListViewableRecipes）で絞り込む。条件は entity.Visibility.CanView と同じで、
 // どの relation が manage / view 権限を与えるかは authz から渡す。
 //
-// ドメインのエラーは返さない（永続化の失敗は想定外の内部エラー）。
+// 返しうるエラー:
+//   - ErrInvalidCursor: after がこのクエリの起点として読めない
 func (q *Query) ListRecipes(
 	ctx context.Context,
 	userID string,
-	before uuid.UUID,
+	after string,
 	limit int32,
 ) (*ListRecipesResult, error) {
+	before := uuid.Max() // 最初のページ: すべてのレシピより「新しい」起点
+	if after != "" {
+		id, err := uuid.Parse(after)
+		if err != nil {
+			return nil, ErrInvalidCursor
+		}
+		before = id
+	}
+
 	// 次のページがあるかを知るために 1 件多く取る
 	rows, err := q.queries.ListViewableRecipes(ctx, gen.ListViewableRecipesParams{
 		Before:          before,
@@ -96,10 +109,10 @@ func (q *Query) ListRecipes(
 		return nil, err
 	}
 
-	result := &ListRecipesResult{Next: uuid.Nil()}
+	result := &ListRecipesResult{}
 	if len(rows) > int(limit) {
 		rows = rows[:limit]
-		result.Next = rows[len(rows)-1].ID
+		result.Next = rows[len(rows)-1].ID.String()
 	}
 
 	result.Recipes = make([]ListRecipesItem, 0, len(rows))

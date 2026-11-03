@@ -131,7 +131,7 @@ func (h *handler) ListRecipes(
 	ctx context.Context,
 	in *pb.ListRecipesRequest,
 ) (*pb.ListRecipesResponse, error) {
-	before, err := decodePageToken(in.GetPageToken())
+	after, err := cursor.Decode(in.GetPageToken())
 	if err != nil {
 		return nil, grpcerr.WithStatus(err, codes.InvalidArgument, msgInvalidPageToken)
 	}
@@ -146,8 +146,11 @@ func (h *handler) ListRecipes(
 		return nil, err
 	}
 
-	result, err := h.query.ListRecipes(ctx, userID, before, pageSize)
+	result, err := h.query.ListRecipes(ctx, userID, after, pageSize)
 	if err != nil {
+		if errors.Is(err, query.ErrInvalidCursor) {
+			return nil, grpcerr.WithStatus(err, codes.InvalidArgument, msgInvalidPageToken)
+		}
 		return nil, err
 	}
 
@@ -166,7 +169,7 @@ func (h *handler) ListRecipes(
 
 	return &pb.ListRecipesResponse{
 		Recipes:       recipes,
-		NextPageToken: encodePageToken(result.Next),
+		NextPageToken: cursor.Encode(result.Next),
 	}, nil
 }
 
@@ -227,32 +230,4 @@ func visibilityToPb(v entity.Visibility) pb.Visibility {
 	default:
 		return pb.Visibility_VISIBILITY_UNSPECIFIED
 	}
-}
-
-// encodePageToken は次のページの起点を page_token にする。次のページがなければ（uuid.Nil()）空文字を返す。
-func encodePageToken(next uuid.UUID) string {
-	if next == uuid.Nil() {
-		return ""
-	}
-	return cursor.Encode(next.String())
-}
-
-// decodePageToken は page_token を次のページの起点に戻す。空なら最初のページ（uuid.Max()）。
-// 読めないトークンや、起点が UUID でないトークンは cursor.ErrInvalid を返す。
-func decodePageToken(token string) (uuid.UUID, error) {
-	if token == "" {
-		return uuid.Max(), nil
-	}
-
-	s, err := cursor.Decode(token)
-	if err != nil {
-		return uuid.UUID{}, err
-	}
-
-	before, err := uuid.Parse(s)
-	if err != nil {
-		return uuid.UUID{}, cursor.ErrInvalid
-	}
-
-	return before, nil
 }

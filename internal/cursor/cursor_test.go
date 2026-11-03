@@ -14,6 +14,16 @@ func TestEncodeDecode(t *testing.T) {
 	}
 }
 
+// 空文字は空文字のまま（「次のページなし」「最初のページ」をそのまま表せる）。
+func TestEmpty(t *testing.T) {
+	if got := Encode(""); got != "" {
+		t.Fatalf("Encode(\"\") = %q, want empty", got)
+	}
+	if got, err := Decode(""); err != nil || got != "" {
+		t.Fatalf("Decode(\"\") = (%q, %v), want empty", got, err)
+	}
+}
+
 func TestDecode_Invalid(t *testing.T) {
 	if _, err := Decode("!!!"); !errors.Is(err, ErrInvalid) {
 		t.Fatalf("want ErrInvalid, got %v", err)
