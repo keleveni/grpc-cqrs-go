@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 
-	"github.com/go-playground/validator/v10"
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/app/user/command"
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/app/user/entity"
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/grpcerr"
@@ -31,24 +30,12 @@ func (h *handler) CreateUser(
 	ctx context.Context,
 	in *pb.CreateUserRequest,
 ) (*pb.CreateUserResponse, error) {
-	request := struct {
-		Name  string `validate:"required"`
-		Email string `validate:"required,email"`
-	}{
-		Name:  in.GetName(),
-		Email: in.GetEmail(),
-	}
-
-	if err := validator.New().Struct(request); err != nil {
-		return nil, grpcerr.WithStatus(err, codes.InvalidArgument, err.Error())
-	}
-
 	id, err := identity.UserID(ctx)
 	if err != nil {
 		return nil, grpcerr.WithStatus(err, codes.Unauthenticated, msgUnauthenticated)
 	}
 
-	result, err := h.command.Create(ctx, id, request.Name, request.Email)
+	result, err := h.command.Create(ctx, id, in.GetName(), in.GetEmail())
 	if err != nil {
 		if errors.Is(err, entity.ErrAlreadyExists) {
 			return nil, grpcerr.WithStatus(err, codes.AlreadyExists, msgUserAlreadyExists)

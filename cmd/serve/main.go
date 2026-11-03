@@ -7,7 +7,9 @@ import (
 	"net"
 	"os"
 
+	"buf.build/go/protovalidate"
 	"github.com/cockroachdb/errors"
+	protovalidatemw "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/protovalidate"
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/interceptor"
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/logger"
 	"github.com/rs/zerolog/log"
@@ -36,12 +38,19 @@ func run(ctx context.Context) error {
 		return errors.Wrap(err, "failed to initialize services")
 	}
 
+	validator, err := protovalidate.New()
+	if err != nil {
+		return errors.Wrap(err, "failed to create validator")
+	}
+
 	s := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
 			interceptor.LoggingUnaryInterceptor(),
 			interceptor.RecoveryUnaryInterceptor(),
 			interceptor.ErrorHandlingUnaryInterceptor(),
 			interceptor.GatewayAuthUnaryInterceptor(),
+			// 入力の形式検証は proto の buf.validate ルールで一元的に行う（認証の後）
+			protovalidatemw.UnaryServerInterceptor(validator),
 		),
 		grpc.ChainStreamInterceptor(
 			interceptor.LoggingStreamInterceptor(),

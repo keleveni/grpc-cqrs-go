@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/app/recipe/command"
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/app/recipe/entity"
@@ -43,18 +42,6 @@ func (h *handler) CreateRecipe(
 	ctx context.Context,
 	in *pb.CreateRecipeRequest,
 ) (*pb.CreateRecipeResponse, error) {
-	request := struct {
-		Title       string `validate:"required"`
-		Description string `validate:"required"`
-	}{
-		Title:       in.GetTitle(),
-		Description: in.GetDescription(),
-	}
-
-	if err := validator.New().Struct(request); err != nil {
-		return nil, grpcerr.WithStatus(err, codes.InvalidArgument, err.Error())
-	}
-
 	userID, err := identity.UserID(ctx)
 	if err != nil {
 		return nil, grpcerr.WithStatus(err, codes.Unauthenticated, msgUnauthenticated)
@@ -62,8 +49,8 @@ func (h *handler) CreateRecipe(
 
 	result, err := h.command.Create(ctx,
 		userID,
-		request.Title,
-		request.Description)
+		in.GetTitle(),
+		in.GetDescription())
 	if err != nil {
 		return nil, err
 	}
@@ -77,21 +64,7 @@ func (h *handler) UpdateRecipe(
 	ctx context.Context,
 	in *pb.UpdateRecipeRequest,
 ) (*pb.UpdateRecipeResponse, error) {
-	request := struct {
-		ID          string `validate:"required"`
-		Title       string `validate:"required"`
-		Description string `validate:"required"`
-	}{
-		ID:          in.GetId(),
-		Title:       in.GetTitle(),
-		Description: in.GetDescription(),
-	}
-
-	if err := validator.New().Struct(request); err != nil {
-		return nil, grpcerr.WithStatus(err, codes.InvalidArgument, err.Error())
-	}
-
-	recipeID, err := uuid.Parse(request.ID)
+	recipeID, err := uuid.Parse(in.GetId())
 	if err != nil {
 		return nil, grpcerr.WithStatus(err, codes.InvalidArgument, err.Error())
 	}
@@ -101,7 +74,7 @@ func (h *handler) UpdateRecipe(
 		return nil, grpcerr.WithStatus(err, codes.Unauthenticated, msgUnauthenticated)
 	}
 
-	if err := h.command.Update(ctx, userID, recipeID, request.Title, request.Description); err != nil {
+	if err := h.command.Update(ctx, userID, recipeID, in.GetTitle(), in.GetDescription()); err != nil {
 		return nil, err
 	}
 

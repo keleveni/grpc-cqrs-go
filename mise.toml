@@ -1,6 +1,6 @@
 [tools]
 atlas = "latest"
-go = "1.25.7"
+go = "1.27.3"
 grpcurl = "latest"
 "aqua:sqlc-dev/sqlc" = "latest"
 buf = "latest"

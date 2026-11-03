@@ -4,13 +4,15 @@ package user;
 
 option go_package = "github.com/kodaikumatani/grpc-cqrs-go/pkg/pb/user";
 
+import "buf/validate/validate.proto";
+
 service UserService {
   rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
 }
 
 message CreateUserRequest {
-  string name = 1;
-  string email = 2;
+  string name = 1 [(buf.validate.field).required = true];
+  string email = 2 [(buf.validate.field).string.email = true];
 }
 
 message CreateUserResponse { string user_id = 1; }

@@ -3,7 +3,7 @@
 # ---- build ----
 # BUILDPLATFORM でビルドホスト側のネイティブ Go を使い、TARGET* でクロスコンパイル。
 # これで arm64(RPi5) 向けを amd64 の CI 上でも高速にビルドできる。
-FROM --platform=$BUILDPLATFORM golang:1.25.7 AS build
+FROM --platform=$BUILDPLATFORM golang:1.27.3 AS build
 
 ARG TARGETOS
 ARG TARGETARCH

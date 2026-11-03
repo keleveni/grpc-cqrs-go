@@ -4,6 +4,7 @@ package share;
 
 option go_package = "github.com/kodaikumatani/grpc-cqrs-go/pkg/pb/share";
 
+import "buf/validate/validate.proto";
 import "google/protobuf/empty.proto";
 
 service ShareService {
@@ -11,7 +12,8 @@ service ShareService {
 }
 
 message ShareRecipeRequest {
-  string recipe_id = 1;
-  string target_user_id = 2;
-  string relation = 3;
+  string recipe_id = 1 [(buf.validate.field).string.uuid = true];
+  string target_user_id = 2 [(buf.validate.field).required = true];
+  // 許可する値の判定は authz.NewRelation が持つ
+  string relation = 3 [(buf.validate.field).required = true];
 }

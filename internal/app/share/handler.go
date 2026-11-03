@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 
-	"github.com/go-playground/validator/v10"
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/authz"
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/grpcerr"
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/identity"
@@ -32,21 +31,7 @@ func (h *handler) ShareRecipe(
 	ctx context.Context,
 	in *pb.ShareRecipeRequest,
 ) (*emptypb.Empty, error) {
-	request := struct {
-		RecipeId     string `validate:"required"`
-		TargetUserId string `validate:"required"`
-		Relation     string `validate:"required"`
-	}{
-		RecipeId:     in.GetRecipeId(),
-		TargetUserId: in.GetTargetUserId(),
-		Relation:     in.GetRelation(),
-	}
-
-	if err := validator.New().Struct(request); err != nil {
-		return nil, grpcerr.WithStatus(err, codes.InvalidArgument, err.Error())
-	}
-
-	relation, err := authz.NewRelation(request.Relation)
+	relation, err := authz.NewRelation(in.GetRelation())
 	if err != nil {
 		return nil, grpcerr.WithStatus(err, codes.InvalidArgument, msgInvalidRelation)
 	}
@@ -58,8 +43,8 @@ func (h *handler) ShareRecipe(
 
 	if err := h.command.ShareRecipe(ctx,
 		userID,
-		request.RecipeId,
-		request.TargetUserId,
+		in.GetRecipeId(),
+		in.GetTargetUserId(),
 		relation); err != nil {
 		if errors.Is(err, authz.ErrAlreadyExists) {
 			return nil, grpcerr.WithStatus(err, codes.AlreadyExists, msgAlreadyShared)
