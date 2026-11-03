@@ -3,35 +3,19 @@ package cursor
 import (
 	"errors"
 	"testing"
-	"uuid"
 )
 
-type pageCursor struct {
-	Before uuid.UUID `json:"before"`
-}
-
 func TestEncodeDecode(t *testing.T) {
-	in := pageCursor{Before: uuid.NewV7()}
-
-	token, err := Encode(in)
-	if err != nil {
-		t.Fatalf("encode: %v", err)
-	}
-
-	got, err := Decode[pageCursor](token)
-	if err != nil || got != in {
-		t.Fatalf("round trip: got (%v, %v), want %v", got, err, in)
+	for _, in := range []string{"019a3b2c-0000-7000-8000-000000000000", "", "日本語 / +="} {
+		got, err := Decode(Encode(in))
+		if err != nil || got != in {
+			t.Errorf("round trip %q: got (%q, %v)", in, got, err)
+		}
 	}
 }
 
 func TestDecode_Invalid(t *testing.T) {
-	for _, token := range []string{
-		"!!!",                 // base64url でない
-		"YWJj",                // base64url だが JSON でない（"abc"）
-		"eyJiZWZvcmUiOiJ4In0", // JSON だが before が UUID でない（{"before":"x"}）
-	} {
-		if _, err := Decode[pageCursor](token); !errors.Is(err, ErrInvalid) {
-			t.Errorf("%q: want ErrInvalid, got %v", token, err)
-		}
+	if _, err := Decode("!!!"); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("want ErrInvalid, got %v", err)
 	}
 }

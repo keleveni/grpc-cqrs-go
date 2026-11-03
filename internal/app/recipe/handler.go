@@ -164,14 +164,9 @@ func (h *handler) ListRecipes(
 		})
 	}
 
-	nextPageToken, err := encodePageToken(result.Next)
-	if err != nil {
-		return nil, err
-	}
-
 	return &pb.ListRecipesResponse{
 		Recipes:       recipes,
-		NextPageToken: nextPageToken,
+		NextPageToken: encodePageToken(result.Next),
 	}, nil
 }
 
@@ -234,30 +229,30 @@ func visibilityToPb(v entity.Visibility) pb.Visibility {
 	}
 }
 
-// listCursor は ListRecipes の page_token の中身。
-type listCursor struct {
-	// Before は次のページの起点。このレシピより古いものを返す。
-	Before uuid.UUID `json:"before"`
-}
-
 // encodePageToken は次のページの起点を page_token にする。次のページがなければ（uuid.Nil()）空文字を返す。
-func encodePageToken(next uuid.UUID) (string, error) {
+func encodePageToken(next uuid.UUID) string {
 	if next == uuid.Nil() {
-		return "", nil
+		return ""
 	}
-	return cursor.Encode(listCursor{Before: next})
+	return cursor.Encode(next.String())
 }
 
 // decodePageToken は page_token を次のページの起点に戻す。空なら最初のページ（uuid.Max()）。
+// 読めないトークンや、起点が UUID でないトークンは cursor.ErrInvalid を返す。
 func decodePageToken(token string) (uuid.UUID, error) {
 	if token == "" {
 		return uuid.Max(), nil
 	}
 
-	c, err := cursor.Decode[listCursor](token)
+	s, err := cursor.Decode(token)
 	if err != nil {
 		return uuid.UUID{}, err
 	}
 
-	return c.Before, nil
+	before, err := uuid.Parse(s)
+	if err != nil {
+		return uuid.UUID{}, cursor.ErrInvalid
+	}
+
+	return before, nil
 }

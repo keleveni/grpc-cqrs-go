@@ -48,20 +48,15 @@ func TestPageToken(t *testing.T) {
 	t.Run("次のページの起点は往復できる", func(t *testing.T) {
 		next := uuid.NewV7()
 
-		token, err := encodePageToken(next)
-		if err != nil {
-			t.Fatalf("encode: %v", err)
-		}
-
-		got, err := decodePageToken(token)
+		got, err := decodePageToken(encodePageToken(next))
 		if err != nil || got != next {
 			t.Fatalf("round trip: got (%v, %v), want %v", got, err, next)
 		}
 	})
 
 	t.Run("次のページがなければ空のトークン", func(t *testing.T) {
-		if got, err := encodePageToken(uuid.Nil()); err != nil || got != "" {
-			t.Fatalf("want empty token, got (%q, %v)", got, err)
+		if got := encodePageToken(uuid.Nil()); got != "" {
+			t.Fatalf("want empty token, got %q", got)
 		}
 	})
 
@@ -73,8 +68,13 @@ func TestPageToken(t *testing.T) {
 	})
 
 	t.Run("不正なトークンは cursor.ErrInvalid", func(t *testing.T) {
-		if _, err := decodePageToken("!!!"); !errors.Is(err, cursor.ErrInvalid) {
-			t.Fatalf("want cursor.ErrInvalid, got %v", err)
+		for _, token := range []string{
+			"!!!",              // base64url でない
+			cursor.Encode("x"), // 起点が UUID でない
+		} {
+			if _, err := decodePageToken(token); !errors.Is(err, cursor.ErrInvalid) {
+				t.Errorf("%q: want cursor.ErrInvalid, got %v", token, err)
+			}
 		}
 	})
 }
