@@ -12,8 +12,8 @@ var errDenied = errors.New("denied")
 // fakeRelationChecker は owner / view 権限の有無を差し替えられる RelationChecker のスタブ。
 // 呼ばれたメソッドを記録し、公開範囲ごとに正しい問い合わせをしているかを確かめる。
 type fakeRelationChecker struct {
-	owner, viewer bool
-	called        []string
+	owner, viewer, editor bool
+	called                []string
 }
 
 func (f *fakeRelationChecker) IsRecipeOwner(context.Context, string, string) error {
@@ -27,6 +27,14 @@ func (f *fakeRelationChecker) IsRecipeOwner(context.Context, string, string) err
 func (f *fakeRelationChecker) CanViewRecipe(context.Context, string, string) error {
 	f.called = append(f.called, "CanViewRecipe")
 	if f.viewer {
+		return nil
+	}
+	return errDenied
+}
+
+func (f *fakeRelationChecker) CanEditRecipe(context.Context, string, string) error {
+	f.called = append(f.called, "CanEditRecipe")
+	if f.editor {
 		return nil
 	}
 	return errDenied
@@ -87,6 +95,71 @@ func TestRecipe_CanBeViewedBy(t *testing.T) {
 			recipe := NewRecipe(uuid.NewV7(), "author", "title", "description", tt.visibility)
 
 			got := recipe.CanBeViewedBy(context.Background(), &tt.checker, "user")
+			if !errors.Is(got, tt.want) {
+				t.Fatalf("want %v, got %v", tt.want, got)
+			}
+			if len(tt.checker.called) != len(tt.wantCalled) {
+				t.Fatalf("called %v, want %v", tt.checker.called, tt.wantCalled)
+			}
+			for i := range tt.wantCalled {
+				if tt.checker.called[i] != tt.wantCalled[i] {
+					t.Fatalf("called %v, want %v", tt.checker.called, tt.wantCalled)
+				}
+			}
+		})
+	}
+}
+
+func TestRecipe_CanBeEditedBy(t *testing.T) {
+	tests := []struct {
+		name       string
+		visibility Visibility
+		checker    fakeRelationChecker
+		want       error
+		wantCalled []string
+	}{
+		{
+			name:       "private は owner なら編集できる",
+			visibility: VisibilityPrivate,
+			checker:    fakeRelationChecker{owner: true},
+			want:       nil,
+			wantCalled: []string{"IsRecipeOwner"},
+		},
+		{
+			name:       "private は editor でも owner でなければ編集できない",
+			visibility: VisibilityPrivate,
+			checker:    fakeRelationChecker{editor: true},
+			want:       errDenied,
+			wantCalled: []string{"IsRecipeOwner"},
+		},
+		{
+			name:       "restricted は edit 権限があれば編集できる",
+			visibility: VisibilityRestricted,
+			checker:    fakeRelationChecker{editor: true},
+			want:       nil,
+			wantCalled: []string{"CanEditRecipe"},
+		},
+		{
+			name:       "public でも edit 権限がなければ編集できない",
+			visibility: VisibilityPublic,
+			checker:    fakeRelationChecker{viewer: true},
+			want:       errDenied,
+			wantCalled: []string{"CanEditRecipe"},
+		},
+		{
+			name:       "未知の公開範囲は ErrInvalidVisibility",
+			visibility: Visibility{},
+			checker:    fakeRelationChecker{owner: true, editor: true},
+			want:       ErrInvalidVisibility,
+			wantCalled: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			recipe := NewRecipe(uuid.NewV7(), "author", "title", "description", tt.visibility)
+
+			got := recipe.CanBeEditedBy(context.Background(), &tt.checker, "user")
 			if !errors.Is(got, tt.want) {
 				t.Fatalf("want %v, got %v", tt.want, got)
 			}

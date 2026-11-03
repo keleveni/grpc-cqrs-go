@@ -63,23 +63,23 @@ func (u *Command) CreateRecipe(
 }
 
 // UpdateRecipe はレシピの内容（タイトルと説明）を編集する。
+// 編集できるのは、private なら owner だけ、それ以外は editor 以上（Recipe.CanBeEditedBy）。
 //
 // 返しうるエラー:
-//   - authz.ErrPermissionDenied: 編集権限がない（レシピが存在しない場合もこちらになる）
-//   - entity.ErrRecipeNotFound: 権限はあるがレシピが存在しない
+//   - entity.ErrRecipeNotFound: レシピが存在しない
+//   - authz.ErrPermissionDenied: 編集権限がない
 func (u *Command) UpdateRecipe(
 	ctx context.Context,
 	userID string,
 	id uuid.UUID,
 	title, description string,
 ) error {
-	if err := u.checker.
-		CanEditRecipe(ctx, userID, id.String()); err != nil {
+	recipe, err := u.storage.Get(ctx, id)
+	if err != nil {
 		return err
 	}
 
-	recipe, err := u.storage.Get(ctx, id)
-	if err != nil {
+	if err := recipe.CanBeEditedBy(ctx, u.checker, userID); err != nil {
 		return err
 	}
 

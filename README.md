@@ -172,7 +172,9 @@ Relationship-Based Access Control を採用。
 - **Relation**: `owner ⊃ editor ⊃ viewer`（owner は複数可）
 - **Tuple ストア**: `relation_tuples` テーブルで「誰が・何に・どの relation か」を管理。subject は不透明な文字列として扱い、ULID かどうかは authz の関心外
 - **Permission**: `map[ObjectType]map[Permission][]Relation` で action → 許可 relation を定義
-- view の認可は `entity.Recipe.CanBeViewedBy` が Visibility に応じて判定し（public は誰でも / private は owner / restricted は view 権限）、relation の判定は authz に問い合わせる。edit/share/公開範囲変更は owner/editor を tuple で判定
+- view の認可は `entity.Recipe.CanBeViewedBy` が Visibility に応じて判定し（public は誰でも / private は owner / restricted は view 権限）、relation の判定は authz に問い合わせる
+- edit の認可は `entity.Recipe.CanBeEditedBy` が判定する（private は owner / それ以外は editor 以上）。share と公開範囲の変更は owner だけ（tuple で判定）
+- 公開範囲は tuple（関係）ではなくレシピの属性。認可は「tuple による関係（ReBAC）」と「公開範囲という属性」の組み合わせで、組み合わせる場所は Recipe のメソッド
 - authz は tuple による relation の判定だけを持ち、機能（`internal/app`）には依存しない
 
 ### エラー処理
@@ -214,7 +216,7 @@ NotFound の変換漏れがあった）。RPC ごとに「どの状況でどの�
 - 永続化は実 DB（compose の PostgreSQL に migration を適用）を使い、db 層の翻訳まで含めて検査する
 - 検査する内容の例:
   - GetRecipe: private は owner だけ / restricted は共有された相手だけ / 存在しなければ NotFound
-  - UpdateRecipe: editor 以上だけ / tuple はあるがレシピの実体がなければ NotFound
+  - UpdateRecipe: private は owner だけ、それ以外は editor 以上 / 存在しなければ NotFound
   - ChangeVisibility: owner だけ / UNSPECIFIED は InvalidArgument
   - ShareRecipe: owner だけ / 共有済みなら AlreadyExists
   - CreateUser: 同じ sub なら AlreadyExists
@@ -302,7 +304,7 @@ grpcurl -plaintext -H "x-endpoint-api-userinfo: $INFO" -d '{
 }' localhost:50051 recipe.v1.RecipeService/CreateRecipe
 ```
 
-#### UpdateRecipe（要認証・editor 以上）
+#### UpdateRecipe（要認証・private は owner のみ、それ以外は editor 以上）
 
 ```bash
 grpcurl -plaintext -H "x-endpoint-api-userinfo: $INFO" -d '{
