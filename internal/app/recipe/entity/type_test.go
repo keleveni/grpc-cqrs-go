@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"uuid"
 )
 
 var errDenied = errors.New("denied")
@@ -31,7 +32,7 @@ func (f *fakeRelationChecker) CanViewRecipe(context.Context, string, string) err
 	return errDenied
 }
 
-func TestCanView(t *testing.T) {
+func TestRecipe_CanBeViewedBy(t *testing.T) {
 	tests := []struct {
 		name       string
 		visibility Visibility
@@ -83,7 +84,9 @@ func TestCanView(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := CanView(context.Background(), &tt.checker, "user", "recipe", tt.visibility)
+			recipe := NewRecipe(uuid.NewV7(), "author", "title", "description", tt.visibility)
+
+			got := recipe.CanBeViewedBy(context.Background(), &tt.checker, "user")
 			if !errors.Is(got, tt.want) {
 				t.Fatalf("want %v, got %v", tt.want, got)
 			}

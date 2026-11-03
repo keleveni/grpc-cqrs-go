@@ -1,6 +1,7 @@
 package entity
 
 import (
+	"context"
 	"uuid"
 
 	"github.com/cockroachdb/errors"
@@ -50,6 +51,36 @@ func (r *Recipe) Edit(title, description string) {
 
 func (r *Recipe) ChangeVisibility(v Visibility) {
 	r.visibility = v
+}
+
+// CanBeViewedBy は公開範囲に応じて、userID がこのレシピを閲覧できるかを判定する。
+//   - public:     誰でも閲覧できる
+//   - private:    owner だけが閲覧できる
+//   - restricted: view 権限を持つユーザーだけが閲覧できる
+//
+// owner は tuple で管理していて複数いてよいので、作成者（userID）との比較ではなく
+// RelationChecker に問い合わせる。権限がなければ RelationChecker のエラーをそのまま返し、
+// 未知の公開範囲は ErrInvalidVisibility を返す。
+func (r *Recipe) CanBeViewedBy(ctx context.Context, rc RelationChecker, userID string) error {
+	switch r.visibility {
+	case VisibilityPublic:
+		return nil
+	case VisibilityPrivate:
+		return rc.IsRecipeOwner(ctx, userID, r.id.String())
+	case VisibilityRestricted:
+		return rc.CanViewRecipe(ctx, userID, r.id.String())
+	default:
+		return ErrInvalidVisibility
+	}
+}
+
+// RelationChecker は閲覧権限の判定に必要な、ユーザーとレシピの関係の問い合わせ。
+// authz.Checker がこれを満たす（entity は authz に依存しない）。
+type RelationChecker interface {
+	// IsRecipeOwner は userID がレシピの owner かを判定する。
+	IsRecipeOwner(ctx context.Context, userID, recipeID string) error
+	// CanViewRecipe は userID がレシピの view 権限（viewer / editor / owner）を持つかを判定する。
+	CanViewRecipe(ctx context.Context, userID, recipeID string) error
 }
 
 type Visibility struct {

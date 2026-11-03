@@ -172,7 +172,7 @@ Relationship-Based Access Control を採用。
 - **Relation**: `owner ⊃ editor ⊃ viewer`（owner は複数可）
 - **Tuple ストア**: `relation_tuples` テーブルで「誰が・何に・どの relation か」を管理。subject は不透明な文字列として扱い、ULID かどうかは authz の関心外
 - **Permission**: `map[ObjectType]map[Permission][]Relation` で action → 許可 relation を定義
-- view の認可は recipe の domain service `entity.CanView` が Visibility に応じて判定し（public は誰でも / private は owner / restricted は view 権限）、relation の判定は authz に問い合わせる。edit/share/公開範囲変更は owner/editor を tuple で判定
+- view の認可は `entity.Recipe.CanBeViewedBy` が Visibility に応じて判定し（public は誰でも / private は owner / restricted は view 権限）、relation の判定は authz に問い合わせる。edit/share/公開範囲変更は owner/editor を tuple で判定
 - authz は tuple による relation の判定だけを持ち、機能（`internal/app`）には依存しない
 
 ### エラー処理
