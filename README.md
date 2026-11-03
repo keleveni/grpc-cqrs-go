@@ -97,7 +97,7 @@ Feature-first + CQRS パターンを採用し、ドメイン（フィーチャ�
 各ドメイン（フィーチャ）は以下のレイヤーで構成されています:
 
 ```
-handler.go          ← gRPC リクエストの受付・バリデーション・エラー変換
+handler.go          ← gRPC リクエストの受付・pb ⇔ ドメインの変換・エラー変換（入力の形式検証は protovalidate の interceptor）
   ├── command/      ← 書き込み操作（エンティティ操作 → Storage インターフェース）
   ├── query/        ← 読み取り操作（Storage → 読み取りモデル）
   └── entity/       ← エンティティの定義（Recipe / User など）
@@ -106,7 +106,38 @@ handler.go          ← gRPC リクエストの受付・バリデーション・
 - Storage インターフェースにより app 層と DB 層が疎結合（依存の向きは `db → app`。逆向きは import cycle になるためコンパイルで防がれる）
 - それ以外の依存の向き（entity / command / query / authz が pb や db に依存しない など）は `.golangci.yml` の depguard で検査する。command と query が互いに依存しないことはレビューで守る
 - DB 層はエンティティ単位（`db/recipe`, `db/user`, `db/tuple`）で実装。CQRS の read/write の差は app 側の interface が表現する
-- エンティティは非公開フィールド + コンストラクタ + getter でカプセル化（不正な生成を型で防止）
+- エンティティは非公開フィールドでカプセル化する（[エンティティのカプセル化](#エンティティのカプセル化) 参照）
+
+### エンティティのカプセル化
+
+エンティティのフィールドはすべて非公開にし、**パッケージの外からは書き換えられない**ようにしています。
+Go には `readonly` のような言語機能はありませんが、非公開フィールドはパッケージの外から触れないため、
+パッケージ境界でカプセル化を強制できます。
+
+```go
+type Recipe struct {
+	id          uuid.UUID // 非公開: 外から直接代入できない
+	title       string
+	visibility  Visibility
+	// ...
+}
+
+func (r *Recipe) Title() string { return r.title }  // 読み取りは getter だけ
+
+func NewRecipe(...) *Recipe { ... }                  // 生成はコンストラクタだけ
+
+func (r *Recipe) Edit(title, description string) { ... } // 変更は業務の言葉のメソッドだけ
+func (r *Recipe) ChangeVisibility(v Visibility) { ... }
+```
+
+- **生成**はコンストラクタ（`NewRecipe` / `NewUser`）からだけ行う
+- **読み取り**は getter だけ。getter は struct 定義の直下にまとめる
+- **状態の変更**は `Edit` や `ChangeVisibility` のような業務の言葉のメソッドからだけ行う。
+  setter は作らず、不変条件や状態遷移のルールを置く場所はこれらのメソッドにする
+- **値オブジェクト**（`Visibility` など）は immutable にする。非公開フィールドを持つ値型にし、
+  生成は `NewVisibility` のような検証付きの関数か、定義済みの値（`VisibilityPublic` など）からだけ行う
+- エンティティ自体は immutable にしない（ID で同一性を持ち、メソッドで状態が変わるもの）。
+  ドメインイベントや変更差分が必要になったら、新しい値を返すメソッドへの切り替えを検討する
 
 ### 認証 / identity
 
