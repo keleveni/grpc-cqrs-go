@@ -6,6 +6,7 @@ import (
 	"uuid"
 
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/app/recipe/entity"
+	"github.com/kodaikumatani/grpc-cqrs-go/internal/cursor"
 	pb "github.com/kodaikumatani/grpc-cqrs-go/pkg/pb/recipe/v1"
 )
 
@@ -47,15 +48,20 @@ func TestPageToken(t *testing.T) {
 	t.Run("次のページの起点は往復できる", func(t *testing.T) {
 		next := uuid.NewV7()
 
-		got, err := decodePageToken(encodePageToken(next))
+		token, err := encodePageToken(next)
+		if err != nil {
+			t.Fatalf("encode: %v", err)
+		}
+
+		got, err := decodePageToken(token)
 		if err != nil || got != next {
 			t.Fatalf("round trip: got (%v, %v), want %v", got, err, next)
 		}
 	})
 
 	t.Run("次のページがなければ空のトークン", func(t *testing.T) {
-		if got := encodePageToken(uuid.Nil()); got != "" {
-			t.Fatalf("want empty token, got %q", got)
+		if got, err := encodePageToken(uuid.Nil()); err != nil || got != "" {
+			t.Fatalf("want empty token, got (%q, %v)", got, err)
 		}
 	})
 
@@ -66,11 +72,9 @@ func TestPageToken(t *testing.T) {
 		}
 	})
 
-	t.Run("不正なトークンはエラー", func(t *testing.T) {
-		for _, token := range []string{"!!!", "YWJj"} { // base64 でない / 16 バイトでない
-			if _, err := decodePageToken(token); !errors.Is(err, errInvalidPageToken) {
-				t.Errorf("%q: want errInvalidPageToken, got %v", token, err)
-			}
+	t.Run("不正なトークンは cursor.ErrInvalid", func(t *testing.T) {
+		if _, err := decodePageToken("!!!"); !errors.Is(err, cursor.ErrInvalid) {
+			t.Fatalf("want cursor.ErrInvalid, got %v", err)
 		}
 	})
 }

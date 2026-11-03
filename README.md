@@ -69,6 +69,7 @@ Feature-first + CQRS パターンを採用し、ドメイン（フィーチャ�
 │   │   ├── gen/                    #   sqlc 生成コード (DO NOT EDIT)
 │   │   ├── pool.go                 #   コネクションプール
 │   │   └── wire.go
+│   ├── cursor/                     # ページングの起点 ⇔ 不透明なトークン（JSON + base64url、汎用）
 │   ├── grpcerr/                    # gRPC エラー変換 (WithStatus: cause 保持 + 安全な status)
 │   ├── health/                     # gRPC ヘルスチェック (grpc.health.v1.Health, DB 疎通連動)
 │   ├── interceptor/                # gRPC インターセプター

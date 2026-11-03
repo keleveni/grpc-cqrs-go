@@ -2,13 +2,13 @@ package recipe
 
 import (
 	"context"
-	"encoding/base64"
 	"errors"
 	"uuid"
 
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/app/recipe/command"
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/app/recipe/entity"
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/app/recipe/query"
+	"github.com/kodaikumatani/grpc-cqrs-go/internal/cursor"
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/grpcerr"
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/identity"
 	pb "github.com/kodaikumatani/grpc-cqrs-go/pkg/pb/recipe/v1"
@@ -24,8 +24,6 @@ const (
 
 // defaultPageSize は ListRecipes で page_size が 0 のときの件数（上限は proto のルールで 100）。
 const defaultPageSize = 20
-
-var errInvalidPageToken = errors.New("invalid page token")
 
 type handler struct {
 	pb.UnimplementedRecipeServiceServer
@@ -166,9 +164,14 @@ func (h *handler) ListRecipes(
 		})
 	}
 
+	nextPageToken, err := encodePageToken(result.Next)
+	if err != nil {
+		return nil, err
+	}
+
 	return &pb.ListRecipesResponse{
 		Recipes:       recipes,
-		NextPageToken: encodePageToken(result.Next),
+		NextPageToken: nextPageToken,
 	}, nil
 }
 
@@ -231,25 +234,30 @@ func visibilityToPb(v entity.Visibility) pb.Visibility {
 	}
 }
 
-// encodePageToken は次のページの起点をクライアント向けの不透明なトークンにする。
-// 次のページがなければ（uuid.Nil()）空文字を返す。
-func encodePageToken(next uuid.UUID) string {
-	if next == uuid.Nil() {
-		return ""
-	}
-	return base64.RawURLEncoding.EncodeToString(next[:])
+// listCursor は ListRecipes の page_token の中身。
+type listCursor struct {
+	// Before は次のページの起点。このレシピより古いものを返す。
+	Before uuid.UUID `json:"before"`
 }
 
-// decodePageToken はトークンを次のページの起点に戻す。空なら最初のページ（uuid.Max()）。
+// encodePageToken は次のページの起点を page_token にする。次のページがなければ（uuid.Nil()）空文字を返す。
+func encodePageToken(next uuid.UUID) (string, error) {
+	if next == uuid.Nil() {
+		return "", nil
+	}
+	return cursor.Encode(listCursor{Before: next})
+}
+
+// decodePageToken は page_token を次のページの起点に戻す。空なら最初のページ（uuid.Max()）。
 func decodePageToken(token string) (uuid.UUID, error) {
 	if token == "" {
 		return uuid.Max(), nil
 	}
 
-	raw, err := base64.RawURLEncoding.DecodeString(token)
-	if err != nil || len(raw) != len(uuid.UUID{}) {
-		return uuid.UUID{}, errInvalidPageToken
+	c, err := cursor.Decode[listCursor](token)
+	if err != nil {
+		return uuid.UUID{}, err
 	}
 
-	return uuid.UUID(raw), nil
+	return c.Before, nil
 }
