@@ -8,28 +8,6 @@ import (
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/app/recipe/entity"
 )
 
-// getRecipeStorage は GetRecipe ユースケースが必要とする永続化。
-type getRecipeStorage interface {
-	GetRecipe(ctx context.Context, id uuid.UUID) (*GetRecipeRecord, error)
-}
-
-// GetRecipeRecord は GetRecipe のために Storage が返すデータ。
-// ユースケースが GetRecipeResult に変換するので、呼び出し側に返す形とは独立に変えられる。
-type GetRecipeRecord struct {
-	ID          string
-	Title       string
-	Description string
-	Visibility  entity.Visibility
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
-	// User はレシピの作成者
-	User struct {
-		ID    string
-		Name  string
-		Email string
-	}
-}
-
 // GetRecipeResult は GetRecipe の読み取りモデル（呼び出し側に返す形）。
 type GetRecipeResult struct {
 	ID          string
