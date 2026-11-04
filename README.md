@@ -105,7 +105,7 @@ handler.go          ← gRPC リクエストの受付・pb ⇔ ドメインの�
 ```
 
 - 書き込み側は Storage インターフェースにより app 層と DB 層が疎結合（依存の向きは `db → app`。逆向きは import cycle になるためコンパイルで防がれる）
-- 読み取り側は**薄い読み取り層**: 守るべき不変条件がないので Storage を挟まず、query が sqlc の生成コード（`internal/db/gen`）を直接使って `XxxResult` を組み立てる。閲覧権限の確認は query で行う
+- 読み取り側は**薄い読み取り層**: 守るべき不変条件がないので Storage を挟まず、query が sqlc の生成コード（`internal/db/gen`）を直接使って `XxxResult` を組み立てる。閲覧できるかの判定も SQL で行う
 - それ以外の依存の向き（entity / command / query / authz が pb に依存しない、command / authz が db に依存しない など）は `.golangci.yml` の depguard で検査する。command と query が互いに依存しないことはレビューで守る
 - query は `query.go` にユースケース、`result.go` に `XxxResult` を置く
 - DB 層（`db/recipe`, `db/user`, `db/tuple`）は書き込み側の Storage の実装
@@ -173,12 +173,11 @@ Relationship-Based Access Control を採用。
 - **Relation**: `owner ⊃ editor ⊃ viewer`（owner は複数可）
 - **Tuple ストア**: `relation_tuples` テーブルで「誰が・何に・どの relation か」を管理。subject は不透明な文字列として扱い、ULID かどうかは authz の関心外
 - **Permission**: `map[ObjectType]map[Permission][]Relation` で action → 許可 relation を定義
-- view の認可は値オブジェクト `entity.Visibility.CanView` が判定し（public は誰でも / private は owner / restricted は view 権限）、relation の判定は authz に問い合わせる
+- **閲覧の認可は SQL で判定する**（`GetViewableRecipe` / `ListViewableRecipes` の WHERE）: public は誰でも / private は manage 権限 / restricted は view 権限。一覧では 1 件ずつ判定できないため、Get も同じ条件の SQL にしてルールを SQL だけに置く。どの relation が権限を与えるかは `authz.RelationsGranting` から渡し、SQL には書かない（閲覧のルールを変えるときは 2 つの SQL を直す）
 - edit の認可は `entity.Visibility.CanEdit` が判定する（private は owner / それ以外は editor 以上。command からは `Recipe.CanBeEditedBy` 経由で呼ぶ）。share と公開範囲の変更は owner だけ（tuple で判定）
-- entity は relation（owner 等）を直接見ず、権限（view / edit / manage）だけを authz に問い合わせる。どの relation がどの権限を与えるかは authz の `permissionRelations` だけが決める（manage = owner）
-- 公開範囲は tuple（関係）ではなくレシピの属性。認可は「tuple による関係（ReBAC）」と「公開範囲という属性」の組み合わせで、組み合わせる場所は値オブジェクト `Visibility` のメソッド（読み取り側はエンティティを作らずに判定できる）
+- entity は relation（owner 等）を直接見ず、権限（edit / manage）だけを authz に問い合わせる（SQL にも relation は書かず、authz から渡す）。どの relation がどの権限を与えるかは authz の `permissionRelations` だけが決める（manage = owner）
+- 公開範囲は tuple（関係）ではなくレシピの属性。認可は「tuple による関係（ReBAC）」と「公開範囲という属性」の組み合わせで、閲覧は SQL、編集は値オブジェクト `Visibility.CanEdit` で組み合わせる
 - authz は tuple による relation の判定だけを持ち、機能（`internal/app`）には依存しない
-- 一覧（ListRecipes）は 1 件ずつ判定できないので、`Visibility.CanView` と同じ条件を SQL（`ListViewableRecipes`）で書いて絞り込む。どの relation が権限を与えるかは `authz.RelationsGranting` から渡し、SQL には書かない（公開範囲のルールを変えるときは `CanView` と SQL の両方を直す）
 
 ### エラー処理
 
@@ -218,7 +217,7 @@ NotFound の変換漏れがあった）。RPC ごとに「どの状況でどの�
 - 本番と同じ interceptor の並びでサーバーをテスト内に起動し（bufconn）、生成されたクライアントから RPC を呼ぶ
 - 永続化は実 DB（compose の PostgreSQL に migration を適用）を使い、db 層の翻訳まで含めて検査する
 - 検査する内容の例:
-  - GetRecipe: private は owner だけ / restricted は共有された相手だけ / 存在しなければ NotFound
+  - GetRecipe: private は owner だけ / restricted は共有された相手だけ / 存在しない・閲覧できないときは NotFound
   - UpdateRecipe: private は owner だけ、それ以外は editor 以上 / 存在しなければ NotFound
   - ChangeVisibility: owner だけ / UNSPECIFIED は InvalidArgument
   - ListRecipes: 閲覧できるレシピだけが新しい順に返る / ページをまたいで漏れや重複がない / 不正な page_token は InvalidArgument
@@ -330,6 +329,7 @@ grpcurl -plaintext -H "x-endpoint-api-userinfo: $INFO" -d '{
 #### GetRecipe
 
 visibility に応じて認可されます（public は誰でも / private は owner / restricted は共有相手）。
+閲覧できないレシピは、存在しないレシピと同じく `NOT_FOUND` になります（存在を外から区別できないようにするため）。
 
 ```bash
 grpcurl -plaintext -H "x-endpoint-api-userinfo: $INFO" -d '{

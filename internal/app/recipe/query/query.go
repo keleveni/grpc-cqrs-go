@@ -12,39 +12,38 @@ import (
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/db/gen"
 )
 
+// ErrInvalidCursor は一覧の起点（after）が読めないとき。
+var ErrInvalidCursor = errors.New("invalid cursor")
+
 // Query は読み取り側のユースケース。
 //
 // 読み取りは守るべき不変条件がないので、Storage インタフェースを挟まずに
 // sqlc で生成したクエリを直接使う（薄い読み取り層）。
-// ErrInvalidCursor は一覧の起点（after）が読めないとき。
-var ErrInvalidCursor = errors.New("invalid cursor")
-
+// 閲覧できるかの判定も SQL（GetViewableRecipe / ListViewableRecipes）で行い、Go では判定しない。
 type Query struct {
 	queries *gen.Queries
-	checker authz.Checker
 }
 
-func NewQuery(
-	pool *pgxpool.Pool,
-	checker authz.Checker,
-) *Query {
-	return &Query{
-		queries: gen.New(pool),
-		checker: checker,
-	}
+func NewQuery(pool *pgxpool.Pool) *Query {
+	return &Query{queries: gen.New(pool)}
 }
 
-// GetRecipe はレシピと作成者の情報を、公開範囲に応じた閲覧権限を確認したうえで返す。
+// GetRecipe は userID が閲覧できるレシピと作成者の情報を返す。
 //
 // 返しうるエラー:
-//   - entity.ErrRecipeNotFound: レシピが存在しない
-//   - authz.ErrPermissionDenied: 公開範囲に対して閲覧権限がない
+//   - entity.ErrRecipeNotFound: レシピが存在しない、または閲覧できない
+//     （閲覧できないレシピの存在を外から区別できないようにするため、同じエラーにする）
 func (q *Query) GetRecipe(
 	ctx context.Context,
 	userID string,
 	id uuid.UUID,
 ) (*GetRecipeResult, error) {
-	row, err := q.queries.GetRecipeWithUser(ctx, id)
+	row, err := q.queries.GetViewableRecipe(ctx, gen.GetViewableRecipeParams{
+		ID:              id,
+		UserID:          userID,
+		ManageRelations: relationNames(authz.PermManage),
+		ViewRelations:   relationNames(authz.PermView),
+	})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, entity.ErrRecipeNotFound
 	}
@@ -54,10 +53,6 @@ func (q *Query) GetRecipe(
 
 	visibility, err := entity.NewVisibility(string(row.Visibility))
 	if err != nil {
-		return nil, err
-	}
-
-	if err := visibility.CanView(ctx, q.checker, userID, id.String()); err != nil {
 		return nil, err
 	}
 
@@ -77,8 +72,8 @@ func (q *Query) GetRecipe(
 // ListRecipes は userID が閲覧できるレシピを新しい順に最大 limit 件返す。
 // after は前のページの ListRecipesResult.Next（このレシピより古いものを返す）。空なら最初のページ。
 //
-// 閲覧できるかの条件は SQL（ListViewableRecipes）で絞り込む。条件は entity.Visibility.CanView と同じで、
-// どの relation が manage / view 権限を与えるかは authz から渡す。
+// 閲覧できるかの条件は SQL（ListViewableRecipes）で絞り込む。どの relation が manage / view 権限を
+// 与えるかは authz から渡す。
 //
 // 返しうるエラー:
 //   - ErrInvalidCursor: after がこのクエリの起点として読めない

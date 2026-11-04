@@ -37,29 +37,6 @@ func (f fakeStorage) ListRelations(
 
 var errBoom = errors.New("boom")
 
-func TestCanViewRecipe(t *testing.T) {
-	tests := []struct {
-		name    string
-		storage fakeStorage
-		want    error
-	}{
-		{name: "owner は view 権限を持つ", storage: fakeStorage{relations: []Relation{RelOwner}}, want: nil},
-		{name: "editor は view 権限を持つ", storage: fakeStorage{relations: []Relation{RelEditor}}, want: nil},
-		{name: "viewer は view 権限を持つ", storage: fakeStorage{relations: []Relation{RelViewer}}, want: nil},
-		{name: "relation がなければ拒否", storage: fakeStorage{}, want: ErrPermissionDenied},
-		{name: "storage のエラーはそのまま返す", storage: fakeStorage{listErr: errBoom}, want: errBoom},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := NewChecker(tt.storage).CanViewRecipe(context.Background(), "user", "recipe")
-			if !errors.Is(got, tt.want) {
-				t.Fatalf("want %v, got %v", tt.want, got)
-			}
-		})
-	}
-}
-
 func TestCanManageRecipe(t *testing.T) {
 	tests := []struct {
 		name    string

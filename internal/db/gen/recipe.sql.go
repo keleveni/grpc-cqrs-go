@@ -63,15 +63,37 @@ func (q *Queries) GetRecipe(ctx context.Context, id uuid.UUID) (GetRecipeRow, er
 	return i, err
 }
 
-const getRecipeWithUser = `-- name: GetRecipeWithUser :one
+const getViewableRecipe = `-- name: GetViewableRecipe :one
+
 SELECT r.id, r.user_id, r.title, r.description, r.visibility, r.created_at, r.updated_at,
        u.name AS user_name, u.email AS user_email
 FROM recipes r
 JOIN users u ON r.user_id = u.id
 WHERE r.id = $1
+  AND (
+    r.visibility = 'public'
+    OR EXISTS (
+      SELECT 1
+      FROM relation_tuples t
+      WHERE t.object_type = 'recipe'
+        AND t.object_id = r.id::text
+        AND t.user_id = $2
+        AND (
+          (r.visibility = 'private' AND t.relation = ANY($3::text[]))
+          OR (r.visibility = 'restricted' AND t.relation = ANY($4::text[]))
+        )
+    )
+  )
 `
 
-type GetRecipeWithUserRow struct {
+type GetViewableRecipeParams struct {
+	ID              uuid.UUID
+	UserID          string
+	ManageRelations []string
+	ViewRelations   []string
+}
+
+type GetViewableRecipeRow struct {
 	ID          uuid.UUID
 	UserID      string
 	Title       string
@@ -83,9 +105,23 @@ type GetRecipeWithUserRow struct {
 	UserEmail   string
 }
 
-func (q *Queries) GetRecipeWithUser(ctx context.Context, id uuid.UUID) (GetRecipeWithUserRow, error) {
-	row := q.db.QueryRow(ctx, getRecipeWithUser, id)
-	var i GetRecipeWithUserRow
+// 読み取り側の閲覧条件は、この 2 つのクエリ（GetViewableRecipe / ListViewableRecipes）だけが持つ。
+// 2 つの WHERE の閲覧条件は同じにする（変えるときは両方直す）:
+//
+//	public は誰でも / private は manage 権限 / restricted は view 権限
+//
+// どの relation が manage / view 権限を与えるかは authz が決めるので、引数で受け取る。
+// user_id が閲覧できるときだけレシピと作成者を返す（存在しない・閲覧できないときは行なし）。
+// recipes.user_id は NOT NULL かつ users への外部キー（ON DELETE NO ACTION）なので、
+// INNER JOIN でレシピの行が落ちることはない。
+func (q *Queries) GetViewableRecipe(ctx context.Context, arg GetViewableRecipeParams) (GetViewableRecipeRow, error) {
+	row := q.db.QueryRow(ctx, getViewableRecipe,
+		arg.ID,
+		arg.UserID,
+		arg.ManageRelations,
+		arg.ViewRelations,
+	)
+	var i GetViewableRecipeRow
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
@@ -141,12 +177,7 @@ type ListViewableRecipesRow struct {
 }
 
 // user_id が閲覧できるレシピを新しい順（id は UUIDv7 なので id の降順）に返す。
-// 公開範囲ごとの条件は entity.Visibility.CanView と同じにする（変えるときは両方直す）:
-//
-//	public は誰でも / private は manage 権限 / restricted は view 権限
-//
-// どの relation が manage / view 権限を与えるかは authz が決めるので、引数で受け取る。
-// before より古いレシピだけを返す（最初のページは uuid の最大値を渡す）。
+// 閲覧条件は GetViewableRecipe と同じ。before より古いレシピだけを返す（最初のページは uuid の最大値を渡す）。
 func (q *Queries) ListViewableRecipes(ctx context.Context, arg ListViewableRecipesParams) ([]ListViewableRecipesRow, error) {
 	rows, err := q.db.Query(ctx, listViewableRecipes,
 		arg.Before,
