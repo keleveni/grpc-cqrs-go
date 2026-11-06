@@ -19,13 +19,22 @@ var ErrInvalidCursor = errors.New("invalid cursor")
 //
 // 読み取りは守るべき不変条件がないので、Storage インタフェースを挟まずに
 // sqlc で生成したクエリを直接使う（薄い読み取り層）。
-// 閲覧できるかの判定も SQL（GetViewableRecipe / ListViewableRecipes）で行い、Go では判定しない。
+// 閲覧の判定は 2 段に分ける:
+//   - ユーザーがどのレシピにどの権限を持つか: authz（tuple を見る）
+//   - 公開範囲ごとにどの権限が必要か: SQL（GetViewableRecipe / ListViewableRecipes の WHERE）
 type Query struct {
 	queries *gen.Queries
+	checker authz.Checker
 }
 
-func NewQuery(pool *pgxpool.Pool) *Query {
-	return &Query{queries: gen.New(pool)}
+func NewQuery(
+	pool *pgxpool.Pool,
+	checker authz.Checker,
+) *Query {
+	return &Query{
+		queries: gen.New(pool),
+		checker: checker,
+	}
 }
 
 // GetRecipe は userID が閲覧できるレシピと作成者の情報を返す。
@@ -38,11 +47,15 @@ func (q *Query) GetRecipe(
 	userID string,
 	id uuid.UUID,
 ) (*GetRecipeResult, error) {
+	perms, err := q.checker.RecipePermissions(ctx, userID, id.String())
+	if err != nil {
+		return nil, err
+	}
+
 	row, err := q.queries.GetViewableRecipe(ctx, gen.GetViewableRecipeParams{
-		ID:              id,
-		UserID:          userID,
-		ManageRelations: relationNames(authz.PermManage),
-		ViewRelations:   relationNames(authz.PermView),
+		ID:        id,
+		CanManage: perms.Has(authz.PermManage),
+		CanView:   perms.Has(authz.PermView),
 	})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, entity.ErrRecipeNotFound
@@ -72,8 +85,7 @@ func (q *Query) GetRecipe(
 // ListRecipes は userID が閲覧できるレシピを新しい順に最大 limit 件返す。
 // after は前のページの ListRecipesResult.Next（このレシピより古いものを返す）。空なら最初のページ。
 //
-// 閲覧できるかの条件は SQL（ListViewableRecipes）で絞り込む。どの relation が manage / view 権限を
-// 与えるかは authz から渡す。
+// manage / view 権限を持つレシピの id を authz から受け取り、公開範囲の条件と合わせて SQL で絞り込む。
 //
 // 返しうるエラー:
 //   - ErrInvalidCursor: after がこのクエリの起点として読めない
@@ -92,13 +104,21 @@ func (q *Query) ListRecipes(
 		before = id
 	}
 
+	manageIDs, err := q.recipeIDsWith(ctx, userID, authz.PermManage)
+	if err != nil {
+		return nil, err
+	}
+	viewIDs, err := q.recipeIDsWith(ctx, userID, authz.PermView)
+	if err != nil {
+		return nil, err
+	}
+
 	// 次のページがあるかを知るために 1 件多く取る
 	rows, err := q.queries.ListViewableRecipes(ctx, gen.ListViewableRecipesParams{
-		Before:          before,
-		UserID:          userID,
-		ManageRelations: relationNames(authz.PermManage),
-		ViewRelations:   relationNames(authz.PermView),
-		PageLimit:       limit + 1,
+		Before:    before,
+		ManageIds: manageIDs,
+		ViewIds:   viewIDs,
+		PageLimit: limit + 1,
 	})
 	if err != nil {
 		return nil, err
@@ -131,14 +151,21 @@ func (q *Query) ListRecipes(
 	return result, nil
 }
 
-// relationNames は perm を与える relation を SQL に渡せる文字列にする。
-func relationNames(perm authz.Permission) []string {
-	relations := authz.RelationsGranting(authz.ObjectRecipe, perm)
-
-	names := make([]string, 0, len(relations))
-	for _, r := range relations {
-		names = append(names, r.String())
+// recipeIDsWith は userID が perm を持つレシピの id を、SQL に渡せる UUID にして返す。
+func (q *Query) recipeIDsWith(ctx context.Context, userID string, perm authz.Permission) ([]uuid.UUID, error) {
+	objectIDs, err := q.checker.RecipeIDsWith(ctx, userID, perm)
+	if err != nil {
+		return nil, err
 	}
 
-	return names
+	ids := make([]uuid.UUID, 0, len(objectIDs))
+	for _, objectID := range objectIDs {
+		id, err := uuid.Parse(objectID)
+		if err != nil {
+			return nil, err // tuple の object_id はレシピの id なので、読めなければデータの不整合
+		}
+		ids = append(ids, id)
+	}
+
+	return ids, nil
 }

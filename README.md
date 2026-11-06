@@ -173,9 +173,12 @@ Relationship-Based Access Control を採用。
 - **Relation**: `owner ⊃ editor ⊃ viewer`（owner は複数可）
 - **Tuple ストア**: `relation_tuples` テーブルで「誰が・何に・どの relation か」を管理。subject は不透明な文字列として扱い、ULID かどうかは authz の関心外
 - **Permission**: `map[ObjectType]map[Permission][]Relation` で action → 許可 relation を定義
-- **閲覧の認可は SQL で判定する**（`GetViewableRecipe` / `ListViewableRecipes` の WHERE）: public は誰でも / private は manage 権限 / restricted は view 権限。一覧では 1 件ずつ判定できないため、Get も同じ条件の SQL にしてルールを SQL だけに置く。どの relation が権限を与えるかは `authz.RelationsGranting` から渡し、SQL には書かない（閲覧のルールを変えるときは 2 つの SQL を直す）
+- **閲覧の認可は 2 段で判定する**:
+  - ユーザーがどのレシピにどの権限を持つか: authz が tuple から判定する（Get は `RecipePermissions`、List は権限を持つレシピの ID を返す `RecipeIDsWith`）
+  - 公開範囲ごとにどの権限が必要か: SQL（`GetViewableRecipe` / `ListViewableRecipes` の WHERE）。public は誰でも / private は manage 権限 / restricted は view 権限
+  - recipe の SQL は `relation_tuples` を参照せず、tuple の扱いは authz の Storage に閉じる。一覧では 1 件ずつ判定できないため、Get も同じ条件の SQL にして公開範囲のルールを SQL だけに置く（変えるときは 2 つの SQL を直す）
 - edit の認可は `entity.Visibility.CanEdit` が判定する（private は owner / それ以外は editor 以上。command からは `Recipe.CanBeEditedBy` 経由で呼ぶ）。share と公開範囲の変更は owner だけ（tuple で判定）
-- entity は relation（owner 等）を直接見ず、権限（edit / manage）だけを authz に問い合わせる（SQL にも relation は書かず、authz から渡す）。どの relation がどの権限を与えるかは authz の `permissionRelations` だけが決める（manage = owner）
+- entity は relation（owner 等）を直接見ず、権限（edit / manage）だけを authz に問い合わせる（SQL も relation は扱わず、authz が判定した権限を受け取る）。どの relation がどの権限を与えるかは authz の `permissionRelations` だけが決める（manage = owner）
 - 公開範囲は tuple（関係）ではなくレシピの属性。認可は「tuple による関係（ReBAC）」と「公開範囲という属性」の組み合わせで、閲覧は SQL、編集は値オブジェクト `Visibility.CanEdit` で組み合わせる
 - authz は tuple による relation の判定だけを持ち、機能（`internal/app`）には依存しない
 

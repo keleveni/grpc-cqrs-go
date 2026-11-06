@@ -1,7 +1,6 @@
 package authz
 
 import (
-	"slices"
 	"uuid"
 )
 
@@ -98,10 +97,4 @@ var permissionRelations = map[ObjectType]map[Permission][]Relation{
 		// manage はレシピの管理（private なレシピへのアクセス、公開範囲の変更）
 		PermManage: {RelOwner},
 	},
-}
-
-// RelationsGranting は objectType に対して perm を与える relation を返す。
-// 一覧を SQL で絞り込むときのように、tuple を 1 件ずつ判定できない場面で使う。
-func RelationsGranting(objectType ObjectType, perm Permission) []Relation {
-	return slices.Clone(permissionRelations[objectType][perm])
 }

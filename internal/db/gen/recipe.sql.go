@@ -72,25 +72,15 @@ JOIN users u ON r.user_id = u.id
 WHERE r.id = $1
   AND (
     r.visibility = 'public'
-    OR EXISTS (
-      SELECT 1
-      FROM relation_tuples t
-      WHERE t.object_type = 'recipe'
-        AND t.object_id = r.id::text
-        AND t.user_id = $2
-        AND (
-          (r.visibility = 'private' AND t.relation = ANY($3::text[]))
-          OR (r.visibility = 'restricted' AND t.relation = ANY($4::text[]))
-        )
-    )
+    OR (r.visibility = 'private' AND $2::bool)
+    OR (r.visibility = 'restricted' AND $3::bool)
   )
 `
 
 type GetViewableRecipeParams struct {
-	ID              uuid.UUID
-	UserID          string
-	ManageRelations []string
-	ViewRelations   []string
+	ID        uuid.UUID
+	CanManage bool
+	CanView   bool
 }
 
 type GetViewableRecipeRow struct {
@@ -105,22 +95,18 @@ type GetViewableRecipeRow struct {
 	UserEmail   string
 }
 
-// 読み取り側の閲覧条件は、この 2 つのクエリ（GetViewableRecipe / ListViewableRecipes）だけが持つ。
+// 読み取り側の閲覧条件（公開範囲ごとに必要な権限）は、この 2 つのクエリ（GetViewableRecipe / ListViewableRecipes）だけが持つ。
 // 2 つの WHERE の閲覧条件は同じにする（変えるときは両方直す）:
 //
 //	public は誰でも / private は manage 権限 / restricted は view 権限
 //
-// どの relation が manage / view 権限を与えるかは authz が決めるので、引数で受け取る。
-// user_id が閲覧できるときだけレシピと作成者を返す（存在しない・閲覧できないときは行なし）。
+// ユーザーが権限を持つかどうかは authz が tuple から判定して渡す（ここでは relation_tuples を参照しない）。
+// 閲覧できるときだけレシピと作成者を返す（存在しない・閲覧できないときは行なし）。
+// can_manage / can_view は、ユーザーがこのレシピに manage / view 権限を持つか（authz が判定する）。
 // recipes.user_id は NOT NULL かつ users への外部キー（ON DELETE NO ACTION）なので、
 // INNER JOIN でレシピの行が落ちることはない。
 func (q *Queries) GetViewableRecipe(ctx context.Context, arg GetViewableRecipeParams) (GetViewableRecipeRow, error) {
-	row := q.db.QueryRow(ctx, getViewableRecipe,
-		arg.ID,
-		arg.UserID,
-		arg.ManageRelations,
-		arg.ViewRelations,
-	)
+	row := q.db.QueryRow(ctx, getViewableRecipe, arg.ID, arg.CanManage, arg.CanView)
 	var i GetViewableRecipeRow
 	err := row.Scan(
 		&i.ID,
@@ -142,28 +128,18 @@ FROM recipes r
 WHERE r.id < $1
   AND (
     r.visibility = 'public'
-    OR EXISTS (
-      SELECT 1
-      FROM relation_tuples t
-      WHERE t.object_type = 'recipe'
-        AND t.object_id = r.id::text
-        AND t.user_id = $2
-        AND (
-          (r.visibility = 'private' AND t.relation = ANY($3::text[]))
-          OR (r.visibility = 'restricted' AND t.relation = ANY($4::text[]))
-        )
-    )
+    OR (r.visibility = 'private' AND r.id = ANY($2::uuid[]))
+    OR (r.visibility = 'restricted' AND r.id = ANY($3::uuid[]))
   )
 ORDER BY r.id DESC
-LIMIT $5
+LIMIT $4
 `
 
 type ListViewableRecipesParams struct {
-	Before          uuid.UUID
-	UserID          string
-	ManageRelations []string
-	ViewRelations   []string
-	PageLimit       int32
+	Before    uuid.UUID
+	ManageIds []uuid.UUID
+	ViewIds   []uuid.UUID
+	PageLimit int32
 }
 
 type ListViewableRecipesRow struct {
@@ -176,14 +152,14 @@ type ListViewableRecipesRow struct {
 	UpdatedAt   time.Time
 }
 
-// user_id が閲覧できるレシピを新しい順（id は UUIDv7 なので id の降順）に返す。
-// 閲覧条件は GetViewableRecipe と同じ。before より古いレシピだけを返す（最初のページは uuid の最大値を渡す）。
+// 閲覧できるレシピを新しい順（id は UUIDv7 なので id の降順）に返す。
+// manage_ids / view_ids は、ユーザーが manage / view 権限を持つレシピの id（authz が判定する）。
+// before より古いレシピだけを返す（最初のページは uuid の最大値を渡す）。
 func (q *Queries) ListViewableRecipes(ctx context.Context, arg ListViewableRecipesParams) ([]ListViewableRecipesRow, error) {
 	rows, err := q.db.Query(ctx, listViewableRecipes,
 		arg.Before,
-		arg.UserID,
-		arg.ManageRelations,
-		arg.ViewRelations,
+		arg.ManageIds,
+		arg.ViewIds,
 		arg.PageLimit,
 	)
 	if err != nil {

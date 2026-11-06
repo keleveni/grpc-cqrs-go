@@ -36,7 +36,7 @@ func initializeServices(ctx context.Context, dsn string) (*services, func(), err
 	authzStorage := tuple.NewStore(pool)
 	checker := authz.NewChecker(authzStorage)
 	commandCommand := command.NewCommand(storage, authzStorage, checker)
-	queryQuery := query.NewQuery(pool)
+	queryQuery := query.NewQuery(pool, checker)
 	recipeServiceServer := recipe2.NewHandler(commandCommand, queryQuery)
 	commandStorage := user.NewStore(pool)
 	command3 := command2.NewCommand(commandStorage)
