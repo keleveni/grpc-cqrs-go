@@ -10,10 +10,10 @@ SELECT id, object_type, object_id, relation, user_id, created_at
 FROM relation_tuples
 WHERE object_type = $1 AND object_id = $2 AND user_id = $3;
 
--- name: ListObjectIDsByRelations :many
--- user_id が relations のいずれかを持つ object_type の object_id を返す（一覧の絞り込み用）。
-SELECT DISTINCT object_id
+-- name: ListUserIDsByRelations :many
+-- object_type の object_id に対して relations のいずれかを持つ user_id を返す（閲覧者の計算用）。
+SELECT DISTINCT user_id
 FROM relation_tuples
 WHERE object_type = sqlc.arg('object_type')
-  AND user_id = sqlc.arg('user_id')
+  AND object_id = sqlc.arg('object_id')
   AND relation = ANY(sqlc.arg('relations')::text[]);

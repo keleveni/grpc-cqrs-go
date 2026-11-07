@@ -79,10 +79,10 @@ func (s *store) ListRelations(
 	return tuples, nil
 }
 
-func (s *store) ListObjectIDs(
+func (s *store) ListUserIDs(
 	ctx context.Context,
 	objectType authz.ObjectType,
-	userID string,
+	objectID string,
 	relations []authz.Relation,
 ) ([]string, error) {
 	names := make([]string, 0, len(relations))
@@ -90,9 +90,9 @@ func (s *store) ListObjectIDs(
 		names = append(names, r.String())
 	}
 
-	return s.queries.ListObjectIDsByRelations(ctx, gen.ListObjectIDsByRelationsParams{
+	return s.queries.ListUserIDsByRelations(ctx, gen.ListUserIDsByRelationsParams{
 		ObjectType: objectType.String(),
-		UserID:     userID,
+		ObjectID:   objectID,
 		Relations:  names,
 	})
 }

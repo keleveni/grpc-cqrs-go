@@ -7,18 +7,27 @@ import (
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/authz"
 )
 
+// RecipeViewers は共有の変更を、レシピの閲覧者（読み取りモデル）に反映する。
+// recipe の command.ViewerProjector がこれを満たす（share は recipe に依存しない）。
+type RecipeViewers interface {
+	RefreshViewers(ctx context.Context, recipeID string) error
+}
+
 type Command struct {
 	storage authz.Storage
 	checker authz.Checker
+	viewers RecipeViewers
 }
 
 func NewCommand(
 	storage authz.Storage,
 	checker authz.Checker,
+	viewers RecipeViewers,
 ) *Command {
 	return &Command{
 		storage: storage,
 		checker: checker,
+		viewers: viewers,
 	}
 }
 
@@ -50,5 +59,6 @@ func (u *Command) ShareRecipe(
 		return err
 	}
 
-	return nil
+	// restricted なら共有相手が閲覧できるようになる（public / private では閲覧者は変わらない）
+	return u.viewers.RefreshViewers(ctx, recipeID)
 }

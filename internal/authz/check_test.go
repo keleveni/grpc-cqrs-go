@@ -9,12 +9,12 @@ import (
 )
 
 // fakeStorage は ListRelations が返す relation を差し替えられる Storage のスタブ。
-// ListObjectIDs は受け取った relations を記録し、objectIDs を返す。
+// ListUserIDs は受け取った relations を記録し、userIDs を返す。
 type fakeStorage struct {
 	relations []Relation
 	listErr   error
 
-	objectIDs       []string
+	userIDs         []string
 	queriedRelation *[]Relation
 }
 
@@ -40,7 +40,7 @@ func (f fakeStorage) ListRelations(
 	return tuples, nil
 }
 
-func (f fakeStorage) ListObjectIDs(
+func (f fakeStorage) ListUserIDs(
 	_ context.Context,
 	_ ObjectType,
 	_ string,
@@ -52,7 +52,7 @@ func (f fakeStorage) ListObjectIDs(
 	if f.queriedRelation != nil {
 		*f.queriedRelation = relations
 	}
-	return f.objectIDs, nil
+	return f.userIDs, nil
 }
 
 var errBoom = errors.New("boom")
@@ -79,71 +79,39 @@ func TestCanManageRecipe(t *testing.T) {
 	}
 }
 
-func TestRecipePermissions(t *testing.T) {
+func TestUsersWithRecipe(t *testing.T) {
 	tests := []struct {
-		name      string
-		relations []Relation
-		want      map[Permission]bool
+		name  string
+		call  func(Checker) ([]string, error)
+		wantQ []Relation
 	}{
 		{
-			name:      "owner は view / edit / manage をすべて持つ",
-			relations: []Relation{RelOwner},
-			want:      map[Permission]bool{PermView: true, PermEdit: true, PermManage: true},
+			name:  "manage 権限は owner で検索する",
+			call:  func(c Checker) ([]string, error) { return c.UsersWithManageRecipe(context.Background(), "recipe") },
+			wantQ: []Relation{RelOwner},
 		},
 		{
-			name:      "editor は view / edit を持ち、manage は持たない",
-			relations: []Relation{RelEditor},
-			want:      map[Permission]bool{PermView: true, PermEdit: true, PermManage: false},
-		},
-		{
-			name:      "viewer は view だけを持つ",
-			relations: []Relation{RelViewer},
-			want:      map[Permission]bool{PermView: true, PermEdit: false, PermManage: false},
-		},
-		{
-			name:      "relation がなければ何も持たない",
-			relations: nil,
-			want:      map[Permission]bool{PermView: false, PermEdit: false, PermManage: false},
+			name:  "view 権限は viewer / editor / owner で検索する",
+			call:  func(c Checker) ([]string, error) { return c.UsersWithViewRecipe(context.Background(), "recipe") },
+			wantQ: []Relation{RelViewer, RelEditor, RelOwner},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewChecker(fakeStorage{relations: tt.relations}).
-				RecipePermissions(context.Background(), "user", "recipe")
+			var queried []Relation
+			storage := fakeStorage{userIDs: []string{"u1", "u2"}, queriedRelation: &queried}
+
+			got, err := tt.call(NewChecker(storage))
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
-			for perm, want := range tt.want {
-				if got.Has(perm) != want {
-					t.Errorf("Has(%v) = %v, want %v", perm, got.Has(perm), want)
-				}
+			if !slices.Equal(got, []string{"u1", "u2"}) {
+				t.Fatalf("users = %v", got)
+			}
+			if !slices.Equal(queried, tt.wantQ) {
+				t.Fatalf("queried relations = %v, want %v", queried, tt.wantQ)
 			}
 		})
 	}
-
-	t.Run("storage のエラーはそのまま返す", func(t *testing.T) {
-		_, err := NewChecker(fakeStorage{listErr: errBoom}).RecipePermissions(context.Background(), "user", "recipe")
-		if !errors.Is(err, errBoom) {
-			t.Fatalf("want errBoom, got %v", err)
-		}
-	})
-}
-
-func TestRecipeIDsWith(t *testing.T) {
-	t.Run("権限を与える relation で検索し、見つかった ID を返す", func(t *testing.T) {
-		var queried []Relation
-		storage := fakeStorage{objectIDs: []string{"r1", "r2"}, queriedRelation: &queried}
-
-		got, err := NewChecker(storage).RecipeIDsWith(context.Background(), "user", PermManage)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if !slices.Equal(got, []string{"r1", "r2"}) {
-			t.Fatalf("ids = %v", got)
-		}
-		if !slices.Equal(queried, []Relation{RelOwner}) {
-			t.Fatalf("queried relations = %v, want [owner]", queried)
-		}
-	})
 }

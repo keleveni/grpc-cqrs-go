@@ -103,3 +103,29 @@ table "relation_tuples" {
     ]
   }
 }
+
+# 読み取りモデル（projection）: 誰がレシピを閲覧できるか。
+# 書き込み側（公開範囲の変更・共有）が、公開範囲と tuple から計算した結果を書く。読み取り側はこれを引くだけ。
+# public のレシピは user_id = '*'（全員）の 1 行で表す。
+table "recipe_viewers" {
+  schema = schema.gcook
+  column "recipe_id" {
+    type = uuid
+  }
+  column "user_id" {
+    type = varchar(255)
+  }
+  primary_key {
+    columns = [column.recipe_id, column.user_id]
+  }
+  foreign_key "recipe_viewers_recipe_id_fkey" {
+    columns     = [column.recipe_id]
+    ref_columns = [table.recipes.column.id]
+    on_delete   = CASCADE
+    on_update   = NO_ACTION
+  }
+  # 一覧（ユーザーが閲覧できるレシピ）用
+  index "recipe_viewers_user_id_recipe_id_idx" {
+    columns = [column.user_id, column.recipe_id]
+  }
+}

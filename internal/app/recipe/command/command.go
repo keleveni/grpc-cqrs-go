@@ -9,20 +9,23 @@ import (
 )
 
 type Command struct {
-	storage Storage
-	tuple   authz.Storage
-	checker authz.Checker
+	storage   Storage
+	tuple     authz.Storage
+	checker   authz.Checker
+	projector *ViewerProjector
 }
 
 func NewCommand(
 	storage Storage,
 	tuple authz.Storage,
 	checker authz.Checker,
+	projector *ViewerProjector,
 ) *Command {
 	return &Command{
-		storage: storage,
-		tuple:   tuple,
-		checker: checker,
+		storage:   storage,
+		tuple:     tuple,
+		checker:   checker,
+		projector: projector,
 	}
 }
 
@@ -56,6 +59,10 @@ func (u *Command) CreateRecipe(
 	}
 
 	if err := u.tuple.CreateTuple(ctx, tp); err != nil {
+		return nil, err
+	}
+
+	if err := u.projector.project(ctx, recipe); err != nil {
 		return nil, err
 	}
 
@@ -120,5 +127,10 @@ func (u *Command) ChangeVisibility(
 
 	recipe.ChangeVisibility(v)
 
-	return u.storage.Update(ctx, recipe)
+	if err := u.storage.Update(ctx, recipe); err != nil {
+		return err
+	}
+
+	// 公開範囲が変わると閲覧できるユーザーも変わる
+	return u.projector.project(ctx, recipe)
 }

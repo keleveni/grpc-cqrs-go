@@ -44,41 +44,6 @@ func (q *Queries) DeleteTuple(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
-const listObjectIDsByRelations = `-- name: ListObjectIDsByRelations :many
-SELECT DISTINCT object_id
-FROM relation_tuples
-WHERE object_type = $1
-  AND user_id = $2
-  AND relation = ANY($3::text[])
-`
-
-type ListObjectIDsByRelationsParams struct {
-	ObjectType string
-	UserID     string
-	Relations  []string
-}
-
-// user_id が relations のいずれかを持つ object_type の object_id を返す（一覧の絞り込み用）。
-func (q *Queries) ListObjectIDsByRelations(ctx context.Context, arg ListObjectIDsByRelationsParams) ([]string, error) {
-	rows, err := q.db.Query(ctx, listObjectIDsByRelations, arg.ObjectType, arg.UserID, arg.Relations)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []string
-	for rows.Next() {
-		var object_id string
-		if err := rows.Scan(&object_id); err != nil {
-			return nil, err
-		}
-		items = append(items, object_id)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const listRelations = `-- name: ListRelations :many
 SELECT id, object_type, object_id, relation, user_id, created_at
 FROM relation_tuples
@@ -111,6 +76,41 @@ func (q *Queries) ListRelations(ctx context.Context, arg ListRelationsParams) ([
 			return nil, err
 		}
 		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listUserIDsByRelations = `-- name: ListUserIDsByRelations :many
+SELECT DISTINCT user_id
+FROM relation_tuples
+WHERE object_type = $1
+  AND object_id = $2
+  AND relation = ANY($3::text[])
+`
+
+type ListUserIDsByRelationsParams struct {
+	ObjectType string
+	ObjectID   string
+	Relations  []string
+}
+
+// object_type の object_id に対して relations のいずれかを持つ user_id を返す（閲覧者の計算用）。
+func (q *Queries) ListUserIDsByRelations(ctx context.Context, arg ListUserIDsByRelationsParams) ([]string, error) {
+	rows, err := q.db.Query(ctx, listUserIDsByRelations, arg.ObjectType, arg.ObjectID, arg.Relations)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var user_id string
+		if err := rows.Scan(&user_id); err != nil {
+			return nil, err
+		}
+		items = append(items, user_id)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
