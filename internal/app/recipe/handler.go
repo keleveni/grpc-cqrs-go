@@ -8,6 +8,8 @@ import (
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/app/recipe/command"
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/app/recipe/entity"
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/app/recipe/query"
+	"github.com/kodaikumatani/grpc-cqrs-go/internal/authz"
+	"github.com/kodaikumatani/grpc-cqrs-go/internal/cursor"
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/grpcerr"
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/identity"
 	pb "github.com/kodaikumatani/grpc-cqrs-go/pkg/pb/recipe/v1"
@@ -18,7 +20,13 @@ import (
 const (
 	msgInvalidVisibility = "invalid visibility"
 	msgRecipeNotFound    = "recipe not found"
+	msgInvalidPageToken  = "invalid page token"
+	msgInvalidRelation   = "invalid relation"
+	msgAlreadyShared     = "recipe already shared with this user"
 )
+
+// defaultPageSize は ListRecipes で page_size が 0 のときの件数（上限は proto のルールで 100）。
+const defaultPageSize = 20
 
 type handler struct {
 	pb.UnimplementedRecipeServiceServer
@@ -122,6 +130,52 @@ func (h *handler) GetRecipe(
 	}, nil
 }
 
+func (h *handler) ListRecipes(
+	ctx context.Context,
+	in *pb.ListRecipesRequest,
+) (*pb.ListRecipesResponse, error) {
+	after, err := cursor.Decode(in.GetPageToken())
+	if err != nil {
+		return nil, grpcerr.WithStatus(err, codes.InvalidArgument, msgInvalidPageToken)
+	}
+
+	pageSize := in.GetPageSize()
+	if pageSize == 0 {
+		pageSize = defaultPageSize
+	}
+
+	userID, err := identity.UserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := h.query.ListRecipes(ctx, userID, after, pageSize)
+	if err != nil {
+		if errors.Is(err, query.ErrInvalidCursor) {
+			return nil, grpcerr.WithStatus(err, codes.InvalidArgument, msgInvalidPageToken)
+		}
+		return nil, err
+	}
+
+	recipes := make([]*pb.Recipe, 0, len(result.Recipes))
+	for _, r := range result.Recipes {
+		recipes = append(recipes, &pb.Recipe{
+			Id:          r.ID,
+			UserId:      r.UserID,
+			Title:       r.Title,
+			Description: r.Description,
+			Visibility:  visibilityToPb(r.Visibility),
+			CreatedAt:   timestamppb.New(r.CreatedAt),
+			UpdatedAt:   timestamppb.New(r.UpdatedAt),
+		})
+	}
+
+	return &pb.ListRecipesResponse{
+		Recipes:       recipes,
+		NextPageToken: cursor.Encode(result.Next),
+	}, nil
+}
+
 func (h *handler) ChangeVisibility(
 	ctx context.Context,
 	in *pb.ChangeVisibilityRequest,
@@ -131,9 +185,32 @@ func (h *handler) ChangeVisibility(
 		return nil, grpcerr.WithStatus(err, codes.InvalidArgument, err.Error())
 	}
 
-	visibility, err := visibilityFromPb(in.GetVisibility())
+	userID, err := identity.UserID(ctx)
 	if err != nil {
-		return nil, grpcerr.WithStatus(err, codes.InvalidArgument, msgInvalidVisibility)
+		return nil, err
+	}
+
+	if err := h.command.ChangeVisibility(ctx, userID, id, visibilityFromPb(in.GetVisibility())); err != nil {
+		switch {
+		case errors.Is(err, entity.ErrInvalidVisibility):
+			return nil, grpcerr.WithStatus(err, codes.InvalidArgument, msgInvalidVisibility)
+		case errors.Is(err, entity.ErrRecipeNotFound):
+			return nil, grpcerr.WithStatus(err, codes.NotFound, msgRecipeNotFound)
+		default:
+			return nil, err
+		}
+	}
+
+	return &pb.ChangeVisibilityResponse{Success: true}, nil
+}
+
+func (h *handler) ShareRecipe(
+	ctx context.Context,
+	in *pb.ShareRecipeRequest,
+) (*pb.ShareRecipeResponse, error) {
+	id, err := uuid.Parse(in.GetId())
+	if err != nil {
+		return nil, grpcerr.WithStatus(err, codes.InvalidArgument, err.Error())
 	}
 
 	userID, err := identity.UserID(ctx)
@@ -141,28 +218,38 @@ func (h *handler) ChangeVisibility(
 		return nil, err
 	}
 
-	if err := h.command.ChangeVisibility(ctx, userID, id, visibility); err != nil {
-		if errors.Is(err, entity.ErrRecipeNotFound) {
+	if err := h.command.ShareRecipe(ctx,
+		userID,
+		id,
+		in.GetTargetUserId(),
+		relationFromPb(in.GetRelation())); err != nil {
+		switch {
+		case errors.Is(err, authz.ErrUnknownRelation):
+			return nil, grpcerr.WithStatus(err, codes.InvalidArgument, msgInvalidRelation)
+		case errors.Is(err, entity.ErrRecipeNotFound):
 			return nil, grpcerr.WithStatus(err, codes.NotFound, msgRecipeNotFound)
+		case errors.Is(err, authz.ErrAlreadyExists):
+			return nil, grpcerr.WithStatus(err, codes.AlreadyExists, msgAlreadyShared)
+		default:
+			return nil, err
 		}
-		return nil, err
 	}
 
-	return &pb.ChangeVisibilityResponse{Success: true}, nil
+	return &pb.ShareRecipeResponse{}, nil
 }
 
-// visibilityFromPb は pb の Visibility をドメインの Visibility に変換する。
-// UNSPECIFIED や未定義の値は ErrInvalidVisibility を返す。
-func visibilityFromPb(v pb.Visibility) (entity.Visibility, error) {
+// visibilityFromPb は pb の Visibility を、ユースケースに渡す公開範囲の文字列にする。
+// UNSPECIFIED や未定義の値は空文字にする（ドメインの entity.NewVisibility が ErrInvalidVisibility にする）。
+func visibilityFromPb(v pb.Visibility) string {
 	switch v {
 	case pb.Visibility_VISIBILITY_PUBLIC:
-		return entity.VisibilityPublic, nil
+		return entity.VisibilityPublic.String()
 	case pb.Visibility_VISIBILITY_PRIVATE:
-		return entity.VisibilityPrivate, nil
+		return entity.VisibilityPrivate.String()
 	case pb.Visibility_VISIBILITY_RESTRICTED:
-		return entity.VisibilityRestricted, nil
+		return entity.VisibilityRestricted.String()
 	default:
-		return entity.Visibility{}, entity.ErrInvalidVisibility
+		return ""
 	}
 }
 
@@ -178,5 +265,20 @@ func visibilityToPb(v entity.Visibility) pb.Visibility {
 		return pb.Visibility_VISIBILITY_RESTRICTED
 	default:
 		return pb.Visibility_VISIBILITY_UNSPECIFIED
+	}
+}
+
+// relationFromPb は pb の Relation を、ユースケースに渡す relation の文字列にする。
+// UNSPECIFIED や未定義の値は空文字にする（authz.NewRelation が ErrUnknownRelation にする）。
+func relationFromPb(r pb.Relation) string {
+	switch r {
+	case pb.Relation_RELATION_VIEWER:
+		return authz.RelViewer.String()
+	case pb.Relation_RELATION_EDITOR:
+		return authz.RelEditor.String()
+	case pb.Relation_RELATION_OWNER:
+		return authz.RelOwner.String()
+	default:
+		return ""
 	}
 }

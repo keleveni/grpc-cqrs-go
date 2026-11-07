@@ -78,3 +78,21 @@ func (s *store) ListRelations(
 
 	return tuples, nil
 }
+
+func (s *store) ListUserIDs(
+	ctx context.Context,
+	objectType authz.ObjectType,
+	objectID string,
+	relations []authz.Relation,
+) ([]string, error) {
+	names := make([]string, 0, len(relations))
+	for _, r := range relations {
+		names = append(names, r.String())
+	}
+
+	return s.queries.ListUserIDsByRelations(ctx, gen.ListUserIDsByRelationsParams{
+		ObjectType: objectType.String(),
+		ObjectID:   objectID,
+		Relations:  names,
+	})
+}
