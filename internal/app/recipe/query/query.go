@@ -28,11 +28,6 @@ func NewQuery(pool *pgxpool.Pool) *Query {
 	return &Query{queries: gen.New(pool)}
 }
 
-// viewerIDs は recipe_viewers で照合する閲覧者: ユーザー本人と「全員」（public のレシピ）。
-func viewerIDs(userID string) []string {
-	return []string{userID, entity.Everyone}
-}
-
 // GetRecipe は userID が閲覧できるレシピと作成者の情報を返す。
 //
 // 返しうるエラー:
@@ -45,7 +40,7 @@ func (q *Query) GetRecipe(
 ) (*GetRecipeResult, error) {
 	row, err := q.queries.GetViewableRecipe(ctx, gen.GetViewableRecipeParams{
 		ID:      id,
-		UserIds: viewerIDs(userID),
+		UserIds: []string{userID, entity.Everyone},
 	})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, entity.ErrRecipeNotFound
@@ -95,7 +90,7 @@ func (q *Query) ListRecipes(
 	// 次のページがあるかを知るために 1 件多く取る
 	rows, err := q.queries.ListViewableRecipes(ctx, gen.ListViewableRecipesParams{
 		Before:    before,
-		UserIds:   viewerIDs(userID),
+		UserIds:   []string{userID, entity.Everyone},
 		PageLimit: limit + 1,
 	})
 	if err != nil {
