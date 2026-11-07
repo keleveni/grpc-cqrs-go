@@ -24,6 +24,7 @@ const (
 	RecipeService_ListRecipes_FullMethodName      = "/recipe.v1.RecipeService/ListRecipes"
 	RecipeService_UpdateRecipe_FullMethodName     = "/recipe.v1.RecipeService/UpdateRecipe"
 	RecipeService_ChangeVisibility_FullMethodName = "/recipe.v1.RecipeService/ChangeVisibility"
+	RecipeService_ShareRecipe_FullMethodName      = "/recipe.v1.RecipeService/ShareRecipe"
 )
 
 // RecipeServiceClient is the client API for RecipeService service.
@@ -36,6 +37,8 @@ type RecipeServiceClient interface {
 	ListRecipes(ctx context.Context, in *ListRecipesRequest, opts ...grpc.CallOption) (*ListRecipesResponse, error)
 	UpdateRecipe(ctx context.Context, in *UpdateRecipeRequest, opts ...grpc.CallOption) (*UpdateRecipeResponse, error)
 	ChangeVisibility(ctx context.Context, in *ChangeVisibilityRequest, opts ...grpc.CallOption) (*ChangeVisibilityResponse, error)
+	// レシピを他のユーザーに relation で共有する（owner だけ）。restricted なら共有相手が閲覧できるようになる。
+	ShareRecipe(ctx context.Context, in *ShareRecipeRequest, opts ...grpc.CallOption) (*ShareRecipeResponse, error)
 }
 
 type recipeServiceClient struct {
@@ -96,6 +99,16 @@ func (c *recipeServiceClient) ChangeVisibility(ctx context.Context, in *ChangeVi
 	return out, nil
 }
 
+func (c *recipeServiceClient) ShareRecipe(ctx context.Context, in *ShareRecipeRequest, opts ...grpc.CallOption) (*ShareRecipeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ShareRecipeResponse)
+	err := c.cc.Invoke(ctx, RecipeService_ShareRecipe_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RecipeServiceServer is the server API for RecipeService service.
 // All implementations must embed UnimplementedRecipeServiceServer
 // for forward compatibility.
@@ -106,6 +119,8 @@ type RecipeServiceServer interface {
 	ListRecipes(context.Context, *ListRecipesRequest) (*ListRecipesResponse, error)
 	UpdateRecipe(context.Context, *UpdateRecipeRequest) (*UpdateRecipeResponse, error)
 	ChangeVisibility(context.Context, *ChangeVisibilityRequest) (*ChangeVisibilityResponse, error)
+	// レシピを他のユーザーに relation で共有する（owner だけ）。restricted なら共有相手が閲覧できるようになる。
+	ShareRecipe(context.Context, *ShareRecipeRequest) (*ShareRecipeResponse, error)
 	mustEmbedUnimplementedRecipeServiceServer()
 }
 
@@ -130,6 +145,9 @@ func (UnimplementedRecipeServiceServer) UpdateRecipe(context.Context, *UpdateRec
 }
 func (UnimplementedRecipeServiceServer) ChangeVisibility(context.Context, *ChangeVisibilityRequest) (*ChangeVisibilityResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ChangeVisibility not implemented")
+}
+func (UnimplementedRecipeServiceServer) ShareRecipe(context.Context, *ShareRecipeRequest) (*ShareRecipeResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ShareRecipe not implemented")
 }
 func (UnimplementedRecipeServiceServer) mustEmbedUnimplementedRecipeServiceServer() {}
 func (UnimplementedRecipeServiceServer) testEmbeddedByValue()                       {}
@@ -242,6 +260,24 @@ func _RecipeService_ChangeVisibility_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RecipeService_ShareRecipe_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ShareRecipeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RecipeServiceServer).ShareRecipe(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RecipeService_ShareRecipe_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RecipeServiceServer).ShareRecipe(ctx, req.(*ShareRecipeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // RecipeService_ServiceDesc is the grpc.ServiceDesc for RecipeService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -268,6 +304,10 @@ var RecipeService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ChangeVisibility",
 			Handler:    _RecipeService_ChangeVisibility_Handler,
+		},
+		{
+			MethodName: "ShareRecipe",
+			Handler:    _RecipeService_ShareRecipe_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

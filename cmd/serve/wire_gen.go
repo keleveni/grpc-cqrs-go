@@ -14,7 +14,6 @@ import (
 	recipe2 "github.com/kodaikumatani/grpc-cqrs-go/internal/app/recipe"
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/app/recipe/command"
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/app/recipe/query"
-	"github.com/kodaikumatani/grpc-cqrs-go/internal/app/share"
 	user2 "github.com/kodaikumatani/grpc-cqrs-go/internal/app/user"
 	command2 "github.com/kodaikumatani/grpc-cqrs-go/internal/app/user/command"
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/authz"
@@ -35,16 +34,13 @@ func initializeServices(ctx context.Context, dsn string) (*services, func(), err
 	storage := recipe.NewStore(pool)
 	authzStorage := tuple.NewStore(pool)
 	checker := authz.NewChecker(authzStorage)
-	viewerProjector := command.NewViewerProjector(storage, checker)
-	commandCommand := command.NewCommand(storage, authzStorage, checker, viewerProjector)
+	commandCommand := command.NewCommand(storage, authzStorage, checker)
 	queryQuery := query.NewQuery(pool)
 	recipeServiceServer := recipe2.NewHandler(commandCommand, queryQuery)
 	commandStorage := user.NewStore(pool)
 	command3 := command2.NewCommand(commandStorage)
 	userServiceServer := user2.NewHandler(command3)
-	shareCommand := share.NewCommand(authzStorage, checker, viewerProjector)
-	shareServiceServer := share.NewHandler(shareCommand)
-	registrar := app.NewRegistrar(recipeServiceServer, userServiceServer, shareServiceServer)
+	registrar := app.NewRegistrar(recipeServiceServer, userServiceServer)
 	healthChecker := health.NewChecker(pool)
 	mainServices := &services{
 		Registrar: registrar,

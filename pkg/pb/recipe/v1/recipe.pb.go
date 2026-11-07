@@ -75,6 +75,59 @@ func (Visibility) EnumDescriptor() ([]byte, []int) {
 	return file_recipe_v1_recipe_proto_rawDescGZIP(), []int{0}
 }
 
+// 共有相手に与えるレシピとの関係（owner ⊃ editor ⊃ viewer）
+type Relation int32
+
+const (
+	Relation_RELATION_UNSPECIFIED Relation = 0
+	Relation_RELATION_VIEWER      Relation = 1
+	Relation_RELATION_EDITOR      Relation = 2
+	Relation_RELATION_OWNER       Relation = 3
+)
+
+// Enum value maps for Relation.
+var (
+	Relation_name = map[int32]string{
+		0: "RELATION_UNSPECIFIED",
+		1: "RELATION_VIEWER",
+		2: "RELATION_EDITOR",
+		3: "RELATION_OWNER",
+	}
+	Relation_value = map[string]int32{
+		"RELATION_UNSPECIFIED": 0,
+		"RELATION_VIEWER":      1,
+		"RELATION_EDITOR":      2,
+		"RELATION_OWNER":       3,
+	}
+)
+
+func (x Relation) Enum() *Relation {
+	p := new(Relation)
+	*p = x
+	return p
+}
+
+func (x Relation) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (Relation) Descriptor() protoreflect.EnumDescriptor {
+	return file_recipe_v1_recipe_proto_enumTypes[1].Descriptor()
+}
+
+func (Relation) Type() protoreflect.EnumType {
+	return &file_recipe_v1_recipe_proto_enumTypes[1]
+}
+
+func (x Relation) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use Relation.Descriptor instead.
+func (Relation) EnumDescriptor() ([]byte, []int) {
+	return file_recipe_v1_recipe_proto_rawDescGZIP(), []int{1}
+}
+
 type Recipe struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -726,6 +779,102 @@ func (x *ChangeVisibilityResponse) GetSuccess() bool {
 	return false
 }
 
+type ShareRecipeRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	TargetUserId  string                 `protobuf:"bytes,2,opt,name=target_user_id,json=targetUserId,proto3" json:"target_user_id,omitempty"`
+	Relation      Relation               `protobuf:"varint,3,opt,name=relation,proto3,enum=recipe.v1.Relation" json:"relation,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ShareRecipeRequest) Reset() {
+	*x = ShareRecipeRequest{}
+	mi := &file_recipe_v1_recipe_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ShareRecipeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ShareRecipeRequest) ProtoMessage() {}
+
+func (x *ShareRecipeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_recipe_v1_recipe_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ShareRecipeRequest.ProtoReflect.Descriptor instead.
+func (*ShareRecipeRequest) Descriptor() ([]byte, []int) {
+	return file_recipe_v1_recipe_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *ShareRecipeRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *ShareRecipeRequest) GetTargetUserId() string {
+	if x != nil {
+		return x.TargetUserId
+	}
+	return ""
+}
+
+func (x *ShareRecipeRequest) GetRelation() Relation {
+	if x != nil {
+		return x.Relation
+	}
+	return Relation_RELATION_UNSPECIFIED
+}
+
+type ShareRecipeResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ShareRecipeResponse) Reset() {
+	*x = ShareRecipeResponse{}
+	mi := &file_recipe_v1_recipe_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ShareRecipeResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ShareRecipeResponse) ProtoMessage() {}
+
+func (x *ShareRecipeResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_recipe_v1_recipe_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ShareRecipeResponse.ProtoReflect.Descriptor instead.
+func (*ShareRecipeResponse) Descriptor() ([]byte, []int) {
+	return file_recipe_v1_recipe_proto_rawDescGZIP(), []int{13}
+}
+
 var File_recipe_v1_recipe_proto protoreflect.FileDescriptor
 
 const file_recipe_v1_recipe_proto_rawDesc = "" +
@@ -776,19 +925,30 @@ const file_recipe_v1_recipe_proto_rawDesc = "" +
 	"visibility\x18\x02 \x01(\x0e2\x15.recipe.v1.VisibilityB\v\xbaH\b\xc8\x01\x01\x82\x01\x02\x10\x01R\n" +
 	"visibility\"4\n" +
 	"\x18ChangeVisibilityResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess*r\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"\x9a\x01\n" +
+	"\x12ShareRecipeRequest\x12\x18\n" +
+	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\x12,\n" +
+	"\x0etarget_user_id\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\ftargetUserId\x12<\n" +
+	"\brelation\x18\x03 \x01(\x0e2\x13.recipe.v1.RelationB\v\xbaH\b\xc8\x01\x01\x82\x01\x02\x10\x01R\brelation\"\x15\n" +
+	"\x13ShareRecipeResponse*r\n" +
 	"\n" +
 	"Visibility\x12\x1a\n" +
 	"\x16VISIBILITY_UNSPECIFIED\x10\x00\x12\x15\n" +
 	"\x11VISIBILITY_PUBLIC\x10\x01\x12\x16\n" +
 	"\x12VISIBILITY_PRIVATE\x10\x02\x12\x19\n" +
-	"\x15VISIBILITY_RESTRICTED\x10\x032\xa4\x03\n" +
+	"\x15VISIBILITY_RESTRICTED\x10\x03*b\n" +
+	"\bRelation\x12\x18\n" +
+	"\x14RELATION_UNSPECIFIED\x10\x00\x12\x13\n" +
+	"\x0fRELATION_VIEWER\x10\x01\x12\x13\n" +
+	"\x0fRELATION_EDITOR\x10\x02\x12\x12\n" +
+	"\x0eRELATION_OWNER\x10\x032\xf2\x03\n" +
 	"\rRecipeService\x12O\n" +
 	"\fCreateRecipe\x12\x1e.recipe.v1.CreateRecipeRequest\x1a\x1f.recipe.v1.CreateRecipeResponse\x12F\n" +
 	"\tGetRecipe\x12\x1b.recipe.v1.GetRecipeRequest\x1a\x1c.recipe.v1.GetRecipeResponse\x12L\n" +
 	"\vListRecipes\x12\x1d.recipe.v1.ListRecipesRequest\x1a\x1e.recipe.v1.ListRecipesResponse\x12O\n" +
 	"\fUpdateRecipe\x12\x1e.recipe.v1.UpdateRecipeRequest\x1a\x1f.recipe.v1.UpdateRecipeResponse\x12[\n" +
-	"\x10ChangeVisibility\x12\".recipe.v1.ChangeVisibilityRequest\x1a#.recipe.v1.ChangeVisibilityResponseBAZ?github.com/kodaikumatani/grpc-cqrs-go/pkg/pb/recipe/v1;recipev1b\x06proto3"
+	"\x10ChangeVisibility\x12\".recipe.v1.ChangeVisibilityRequest\x1a#.recipe.v1.ChangeVisibilityResponse\x12L\n" +
+	"\vShareRecipe\x12\x1d.recipe.v1.ShareRecipeRequest\x1a\x1e.recipe.v1.ShareRecipeResponseBAZ?github.com/kodaikumatani/grpc-cqrs-go/pkg/pb/recipe/v1;recipev1b\x06proto3"
 
 var (
 	file_recipe_v1_recipe_proto_rawDescOnce sync.Once
@@ -802,47 +962,53 @@ func file_recipe_v1_recipe_proto_rawDescGZIP() []byte {
 	return file_recipe_v1_recipe_proto_rawDescData
 }
 
-var file_recipe_v1_recipe_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_recipe_v1_recipe_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_recipe_v1_recipe_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_recipe_v1_recipe_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_recipe_v1_recipe_proto_goTypes = []any{
 	(Visibility)(0),                  // 0: recipe.v1.Visibility
-	(*Recipe)(nil),                   // 1: recipe.v1.Recipe
-	(*CreateRecipeRequest)(nil),      // 2: recipe.v1.CreateRecipeRequest
-	(*CreateRecipeResponse)(nil),     // 3: recipe.v1.CreateRecipeResponse
-	(*GetRecipeRequest)(nil),         // 4: recipe.v1.GetRecipeRequest
-	(*GetRecipeResponse)(nil),        // 5: recipe.v1.GetRecipeResponse
-	(*User)(nil),                     // 6: recipe.v1.User
-	(*ListRecipesRequest)(nil),       // 7: recipe.v1.ListRecipesRequest
-	(*ListRecipesResponse)(nil),      // 8: recipe.v1.ListRecipesResponse
-	(*UpdateRecipeRequest)(nil),      // 9: recipe.v1.UpdateRecipeRequest
-	(*UpdateRecipeResponse)(nil),     // 10: recipe.v1.UpdateRecipeResponse
-	(*ChangeVisibilityRequest)(nil),  // 11: recipe.v1.ChangeVisibilityRequest
-	(*ChangeVisibilityResponse)(nil), // 12: recipe.v1.ChangeVisibilityResponse
-	(*timestamppb.Timestamp)(nil),    // 13: google.protobuf.Timestamp
+	(Relation)(0),                    // 1: recipe.v1.Relation
+	(*Recipe)(nil),                   // 2: recipe.v1.Recipe
+	(*CreateRecipeRequest)(nil),      // 3: recipe.v1.CreateRecipeRequest
+	(*CreateRecipeResponse)(nil),     // 4: recipe.v1.CreateRecipeResponse
+	(*GetRecipeRequest)(nil),         // 5: recipe.v1.GetRecipeRequest
+	(*GetRecipeResponse)(nil),        // 6: recipe.v1.GetRecipeResponse
+	(*User)(nil),                     // 7: recipe.v1.User
+	(*ListRecipesRequest)(nil),       // 8: recipe.v1.ListRecipesRequest
+	(*ListRecipesResponse)(nil),      // 9: recipe.v1.ListRecipesResponse
+	(*UpdateRecipeRequest)(nil),      // 10: recipe.v1.UpdateRecipeRequest
+	(*UpdateRecipeResponse)(nil),     // 11: recipe.v1.UpdateRecipeResponse
+	(*ChangeVisibilityRequest)(nil),  // 12: recipe.v1.ChangeVisibilityRequest
+	(*ChangeVisibilityResponse)(nil), // 13: recipe.v1.ChangeVisibilityResponse
+	(*ShareRecipeRequest)(nil),       // 14: recipe.v1.ShareRecipeRequest
+	(*ShareRecipeResponse)(nil),      // 15: recipe.v1.ShareRecipeResponse
+	(*timestamppb.Timestamp)(nil),    // 16: google.protobuf.Timestamp
 }
 var file_recipe_v1_recipe_proto_depIdxs = []int32{
-	13, // 0: recipe.v1.Recipe.created_at:type_name -> google.protobuf.Timestamp
-	13, // 1: recipe.v1.Recipe.updated_at:type_name -> google.protobuf.Timestamp
+	16, // 0: recipe.v1.Recipe.created_at:type_name -> google.protobuf.Timestamp
+	16, // 1: recipe.v1.Recipe.updated_at:type_name -> google.protobuf.Timestamp
 	0,  // 2: recipe.v1.Recipe.visibility:type_name -> recipe.v1.Visibility
-	1,  // 3: recipe.v1.GetRecipeResponse.recipe:type_name -> recipe.v1.Recipe
-	6,  // 4: recipe.v1.GetRecipeResponse.user:type_name -> recipe.v1.User
-	1,  // 5: recipe.v1.ListRecipesResponse.recipes:type_name -> recipe.v1.Recipe
+	2,  // 3: recipe.v1.GetRecipeResponse.recipe:type_name -> recipe.v1.Recipe
+	7,  // 4: recipe.v1.GetRecipeResponse.user:type_name -> recipe.v1.User
+	2,  // 5: recipe.v1.ListRecipesResponse.recipes:type_name -> recipe.v1.Recipe
 	0,  // 6: recipe.v1.ChangeVisibilityRequest.visibility:type_name -> recipe.v1.Visibility
-	2,  // 7: recipe.v1.RecipeService.CreateRecipe:input_type -> recipe.v1.CreateRecipeRequest
-	4,  // 8: recipe.v1.RecipeService.GetRecipe:input_type -> recipe.v1.GetRecipeRequest
-	7,  // 9: recipe.v1.RecipeService.ListRecipes:input_type -> recipe.v1.ListRecipesRequest
-	9,  // 10: recipe.v1.RecipeService.UpdateRecipe:input_type -> recipe.v1.UpdateRecipeRequest
-	11, // 11: recipe.v1.RecipeService.ChangeVisibility:input_type -> recipe.v1.ChangeVisibilityRequest
-	3,  // 12: recipe.v1.RecipeService.CreateRecipe:output_type -> recipe.v1.CreateRecipeResponse
-	5,  // 13: recipe.v1.RecipeService.GetRecipe:output_type -> recipe.v1.GetRecipeResponse
-	8,  // 14: recipe.v1.RecipeService.ListRecipes:output_type -> recipe.v1.ListRecipesResponse
-	10, // 15: recipe.v1.RecipeService.UpdateRecipe:output_type -> recipe.v1.UpdateRecipeResponse
-	12, // 16: recipe.v1.RecipeService.ChangeVisibility:output_type -> recipe.v1.ChangeVisibilityResponse
-	12, // [12:17] is the sub-list for method output_type
-	7,  // [7:12] is the sub-list for method input_type
-	7,  // [7:7] is the sub-list for extension type_name
-	7,  // [7:7] is the sub-list for extension extendee
-	0,  // [0:7] is the sub-list for field type_name
+	1,  // 7: recipe.v1.ShareRecipeRequest.relation:type_name -> recipe.v1.Relation
+	3,  // 8: recipe.v1.RecipeService.CreateRecipe:input_type -> recipe.v1.CreateRecipeRequest
+	5,  // 9: recipe.v1.RecipeService.GetRecipe:input_type -> recipe.v1.GetRecipeRequest
+	8,  // 10: recipe.v1.RecipeService.ListRecipes:input_type -> recipe.v1.ListRecipesRequest
+	10, // 11: recipe.v1.RecipeService.UpdateRecipe:input_type -> recipe.v1.UpdateRecipeRequest
+	12, // 12: recipe.v1.RecipeService.ChangeVisibility:input_type -> recipe.v1.ChangeVisibilityRequest
+	14, // 13: recipe.v1.RecipeService.ShareRecipe:input_type -> recipe.v1.ShareRecipeRequest
+	4,  // 14: recipe.v1.RecipeService.CreateRecipe:output_type -> recipe.v1.CreateRecipeResponse
+	6,  // 15: recipe.v1.RecipeService.GetRecipe:output_type -> recipe.v1.GetRecipeResponse
+	9,  // 16: recipe.v1.RecipeService.ListRecipes:output_type -> recipe.v1.ListRecipesResponse
+	11, // 17: recipe.v1.RecipeService.UpdateRecipe:output_type -> recipe.v1.UpdateRecipeResponse
+	13, // 18: recipe.v1.RecipeService.ChangeVisibility:output_type -> recipe.v1.ChangeVisibilityResponse
+	15, // 19: recipe.v1.RecipeService.ShareRecipe:output_type -> recipe.v1.ShareRecipeResponse
+	14, // [14:20] is the sub-list for method output_type
+	8,  // [8:14] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_recipe_v1_recipe_proto_init() }
@@ -855,8 +1021,8 @@ func file_recipe_v1_recipe_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_recipe_v1_recipe_proto_rawDesc), len(file_recipe_v1_recipe_proto_rawDesc)),
-			NumEnums:      1,
-			NumMessages:   12,
+			NumEnums:      2,
+			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

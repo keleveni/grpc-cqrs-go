@@ -37,7 +37,7 @@ Feature-first + CQRS パターンを採用し、ドメイン（フィーチャ�
 ├── internal/
 │   ├── app/                        # アプリケーション層（フィーチャ単位）
 │   │   ├── recipe/                 # Recipe ドメイン
-│   │   │   ├── command/            #   書き込み (CreateRecipe, UpdateRecipe, ChangeVisibility) + 閲覧者の projection 更新
+│   │   │   ├── command/            #   書き込み (CreateRecipe, UpdateRecipe, ChangeVisibility, ShareRecipe) + 閲覧者の projection 更新
 │   │   │   ├── query/              #   読み取り (GetRecipe, ListRecipes)
 │   │   │   ├── entity/             #   エンティティ (Recipe, Visibility)
 │   │   │   ├── handler.go          #   gRPC ハンドラー
@@ -45,10 +45,6 @@ Feature-first + CQRS パターンを採用し、ドメイン（フィーチャ�
 │   │   ├── user/                   # User ドメイン
 │   │   │   ├── command/            #   書き込み (CreateUser)
 │   │   │   ├── entity/             #   エンティティ (User)
-│   │   │   ├── handler.go
-│   │   │   └── wire.go
-│   │   ├── share/                  # Share 機能（レシピ共有）
-│   │   │   ├── command.go          #   ShareRecipe（tuple 付与 → 閲覧者の再計算）
 │   │   │   ├── handler.go
 │   │   │   └── wire.go
 │   │   ├── registrar.go            #   サービス登録
@@ -84,7 +80,7 @@ Feature-first + CQRS パターンを採用し、ドメイン（フィーチャ�
 ├── Dockerfile                      # app イメージ (multi-stage / distroless / arm64)
 ├── Dockerfile.migrate              # migrate イメージ (Atlas + migrations 同梱)
 ├── .github/workflows/build.yml     # Release publish で GHCR へ arm64 push
-├── pkg/pb/                         # Protobuf 生成コード (recipe/share/user の v1)
+├── pkg/pb/                         # Protobuf 生成コード (recipe/user の v1)
 ├── proto/                          # Protobuf 定義 (<name>/v1/<name>.proto)
 ├── atlas.hcl                       # Atlas 設定
 ├── buf.yaml / buf.gen.yaml         # Buf 設定
@@ -186,12 +182,12 @@ Relationship-Based Access Control を採用。
 
 | いつ | 何をする |
 |---|---|
-| CreateRecipe / ChangeVisibility / ShareRecipe | `ViewerProjector` が `Recipe.Viewers`（公開範囲 + tuple）で閲覧者を計算し、`recipe_viewers` を置き換える |
+| CreateRecipe / ChangeVisibility / ShareRecipe | command の `refreshViewers` が `Recipe.Viewers`（公開範囲 + tuple）で閲覧者を計算し、`recipe_viewers` を置き換える |
 | GetRecipe / ListRecipes | `recipe_viewers.user_id IN (本人, '*')` のレシピだけを返す（1 クエリ） |
 
 - public は全ユーザーを列挙できないので、`user_id = '*'`（`entity.Everyone`）の 1 行で「全員」を表す（Zanzibar のワイルドカードと同じ考え方）
-- 閲覧者は公開範囲と tuple から決まるので、**どちらかを変える書き込みは必ず `ViewerProjector` を呼ぶ**。
-  share は recipe に依存しないよう、`share.RecipeViewers` インタフェース越しに呼ぶ（wire で `*command.ViewerProjector` を bind）
+- 閲覧者は公開範囲と tuple から決まるので、**どちらかを変える書き込みは必ず `refreshViewers` を呼ぶ**。
+  レシピの共有（ShareRecipe）もレシピに対する業務の操作として recipe の command に置き、同じ場所で閲覧者を計算し直す
 - 置き換え（削除 + 追加）は 1 トランザクションで行う。ただしレシピ・tuple・閲覧者の書き込み全体は 1 トランザクションではない
   （レシピと tuple の作成と同じく、途中で失敗すると不整合が残りうる）
 - 閲覧のルールを変えたら、既存のレシピの `recipe_viewers` を作り直す必要がある（導入時の migration で既存データを埋めている）
@@ -240,7 +236,7 @@ NotFound の変換漏れがあった）。RPC ごとに「どの状況でどの�
   - UpdateRecipe: private は owner だけ、それ以外は editor 以上 / 存在しなければ NotFound
   - ChangeVisibility: owner だけ / UNSPECIFIED は InvalidArgument
   - ListRecipes: 閲覧できるレシピだけが新しい順に返る / ページをまたいで漏れや重複がない / 不正な page_token は InvalidArgument
-  - ShareRecipe: owner だけ / 共有済みなら AlreadyExists / restricted なら共有相手が GetRecipe・ListRecipes で見られるようになる
+  - ShareRecipe: owner だけ / UNSPECIFIED は InvalidArgument / 共有済みなら AlreadyExists / restricted なら共有相手が GetRecipe・ListRecipes で見られるようになる
   - ChangeVisibility 後に、閲覧できるユーザーが GetRecipe・ListRecipes で変わる（projection の更新漏れがない）
   - CreateUser: 同じ sub なら AlreadyExists
   - 全 RPC: 認証されていなければ Unauthenticated、想定外のエラーは Internal で中身を隠す
@@ -395,18 +391,18 @@ grpcurl -plaintext -H "x-endpoint-api-userinfo: $INFO" -d '{
 }
 ```
 
-### ShareService
-
 #### ShareRecipe（要認証・owner のみ）
 
-対象ユーザーに `viewer` / `editor` を付与します。重複付与は `AlreadyExists` になります。
+対象ユーザーに relation（`RELATION_VIEWER` / `RELATION_EDITOR` / `RELATION_OWNER`）を付与します。
+restricted のレシピなら、共有相手が GetRecipe / ListRecipes で閲覧できるようになります。
+重複付与は `AlreadyExists`、レシピが存在しなければ `NotFound` になります。
 
 ```bash
 grpcurl -plaintext -H "x-endpoint-api-userinfo: $INFO" -d '{
-  "recipe_id": "<recipe_id>",
+  "id": "<recipe_id>",
   "target_user_id": "<user_id>",
-  "relation": "viewer"
-}' localhost:50051 share.v1.ShareService/ShareRecipe
+  "relation": "RELATION_VIEWER"
+}' localhost:50051 recipe.v1.RecipeService/ShareRecipe
 ```
 
 ### サービス一覧の確認

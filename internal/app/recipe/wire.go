@@ -9,6 +9,5 @@ import (
 var Set = wire.NewSet(
 	NewHandler,
 	command.NewCommand,
-	command.NewViewerProjector,
 	query.NewQuery,
 )
