@@ -9,6 +9,7 @@ import (
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/app/recipe/entity"
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/app/recipe/query"
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/authz"
+	"github.com/kodaikumatani/grpc-cqrs-go/internal/cursor"
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/grpcerr"
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/identity"
 	pb "github.com/kodaikumatani/grpc-cqrs-go/pkg/pb/recipe/v1"
@@ -19,9 +20,13 @@ import (
 const (
 	msgInvalidVisibility = "invalid visibility"
 	msgRecipeNotFound    = "recipe not found"
+	msgInvalidPageToken  = "invalid page token"
 	msgInvalidRelation   = "invalid relation"
 	msgAlreadyShared     = "recipe already shared with this user"
 )
+
+// defaultPageSize は ListRecipes で page_size が 0 のときの件数（上限は proto のルールで 100）。
+const defaultPageSize = 20
 
 type handler struct {
 	pb.UnimplementedRecipeServiceServer
@@ -122,6 +127,52 @@ func (h *handler) GetRecipe(
 			Name:  result.UserName,
 			Email: result.UserEmail,
 		},
+	}, nil
+}
+
+func (h *handler) ListRecipes(
+	ctx context.Context,
+	in *pb.ListRecipesRequest,
+) (*pb.ListRecipesResponse, error) {
+	after, err := cursor.Decode(in.GetPageToken())
+	if err != nil {
+		return nil, grpcerr.WithStatus(err, codes.InvalidArgument, msgInvalidPageToken)
+	}
+
+	pageSize := in.GetPageSize()
+	if pageSize == 0 {
+		pageSize = defaultPageSize
+	}
+
+	userID, err := identity.UserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := h.query.ListRecipes(ctx, userID, after, pageSize)
+	if err != nil {
+		if errors.Is(err, query.ErrInvalidCursor) {
+			return nil, grpcerr.WithStatus(err, codes.InvalidArgument, msgInvalidPageToken)
+		}
+		return nil, err
+	}
+
+	recipes := make([]*pb.Recipe, 0, len(result.Recipes))
+	for _, r := range result.Recipes {
+		recipes = append(recipes, &pb.Recipe{
+			Id:          r.ID,
+			UserId:      r.UserID,
+			Title:       r.Title,
+			Description: r.Description,
+			Visibility:  visibilityToPb(r.Visibility),
+			CreatedAt:   timestamppb.New(r.CreatedAt),
+			UpdatedAt:   timestamppb.New(r.UpdatedAt),
+		})
+	}
+
+	return &pb.ListRecipesResponse{
+		Recipes:       recipes,
+		NextPageToken: cursor.Encode(result.Next),
 	}, nil
 }
 

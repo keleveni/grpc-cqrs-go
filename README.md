@@ -38,7 +38,7 @@ Feature-first + CQRS パターンを採用し、ドメイン（フィーチャ�
 │   ├── app/                        # アプリケーション層（フィーチャ単位）
 │   │   ├── recipe/                 # Recipe ドメイン
 │   │   │   ├── command/            #   書き込み (CreateRecipe, UpdateRecipe, ChangeVisibility, ShareRecipe) + 閲覧者の projection 更新
-│   │   │   ├── query/              #   読み取り (GetRecipe)
+│   │   │   ├── query/              #   読み取り (GetRecipe, ListRecipes)
 │   │   │   ├── entity/             #   エンティティ (Recipe, Visibility)
 │   │   │   ├── handler.go          #   gRPC ハンドラー
 │   │   │   └── wire.go
@@ -65,6 +65,7 @@ Feature-first + CQRS パターンを採用し、ドメイン（フィーチャ�
 │   │   ├── gen/                    #   sqlc 生成コード (DO NOT EDIT)
 │   │   ├── pool.go                 #   コネクションプール
 │   │   └── wire.go
+│   ├── cursor/                     # ページングの起点（文字列）⇔ 不透明なトークン（base64url、汎用）
 │   ├── grpcerr/                    # gRPC エラー変換 (WithStatus: cause 保持 + 安全な status)
 │   ├── health/                     # gRPC ヘルスチェック (grpc.health.v1.Health, DB 疎通連動)
 │   ├── interceptor/                # gRPC インターセプター
@@ -177,12 +178,12 @@ Relationship-Based Access Control を採用。
 #### 閲覧者の読み取りモデル（projection）
 
 「誰がどのレシピを閲覧できるか」を、書き込み時に計算して `recipe_viewers(recipe_id, user_id)` に保存する。
-読み取り側（GetRecipe）はこのテーブルを引くだけで、閲覧のルールも authz も使わない。
+読み取り側（GetRecipe / ListRecipes）はこのテーブルを引くだけで、閲覧のルールも authz も使わない。
 
 | いつ | 何をする |
 |---|---|
 | CreateRecipe / ChangeVisibility / ShareRecipe | command の `refreshViewers` が `Recipe.Viewers`（公開範囲 + tuple）で閲覧者を計算し、`recipe_viewers` を置き換える |
-| GetRecipe | `recipe_viewers.user_id IN (本人, '*')` のレシピだけを返す（1 クエリ） |
+| GetRecipe / ListRecipes | `recipe_viewers.user_id IN (本人, '*')` のレシピだけを返す（1 クエリ） |
 
 - public は全ユーザーを列挙できないので、`user_id = '*'`（`entity.Everyone`）の 1 行で「全員」を表す（Zanzibar のワイルドカードと同じ考え方）
 - 閲覧者は公開範囲と tuple から決まるので、**どちらかを変える書き込みは必ず `refreshViewers` を呼ぶ**。
@@ -234,8 +235,9 @@ NotFound の変換漏れがあった）。RPC ごとに「どの状況でどの�
   - GetRecipe: private は owner だけ / restricted は共有された相手だけ / 存在しない・閲覧できないときは NotFound
   - UpdateRecipe: private は owner だけ、それ以外は editor 以上 / 存在しなければ NotFound
   - ChangeVisibility: owner だけ / UNSPECIFIED は InvalidArgument
-  - ShareRecipe: owner だけ / UNSPECIFIED は InvalidArgument / 共有済みなら AlreadyExists / restricted なら共有相手が GetRecipe で見られるようになる
-  - ChangeVisibility 後に、閲覧できるユーザーが GetRecipe で変わる（projection の更新漏れがない）
+  - ListRecipes: 閲覧できるレシピだけが新しい順に返る / ページをまたいで漏れや重複がない / 不正な page_token は InvalidArgument
+  - ShareRecipe: owner だけ / UNSPECIFIED は InvalidArgument / 共有済みなら AlreadyExists / restricted なら共有相手が GetRecipe・ListRecipes で見られるようになる
+  - ChangeVisibility 後に、閲覧できるユーザーが GetRecipe・ListRecipes で変わる（projection の更新漏れがない）
   - CreateUser: 同じ sub なら AlreadyExists
   - 全 RPC: 認証されていなければ Unauthenticated、想定外のエラーは Internal で中身を隠す
 
@@ -368,10 +370,31 @@ grpcurl -plaintext -H "x-endpoint-api-userinfo: $INFO" -d '{
 ```
 （`userId` / `user.id` は IdP の `sub`。recipe の `id` は UUID）
 
+#### ListRecipes（要認証）
+
+閲覧できるレシピ（GetRecipe で見られるもの）を新しい順に返します。`page_size` は省略（0）で 20 件、最大 100 件。
+続きは、レスポンスの `nextPageToken` を `page_token` に渡して取得します（最後のページでは空）。
+
+```bash
+grpcurl -plaintext -H "x-endpoint-api-userinfo: $INFO" -d '{
+  "page_size": 20
+}' localhost:50051 recipe.v1.RecipeService/ListRecipes
+```
+
+レスポンス:
+```json
+{
+  "recipes": [
+    { "id": "550e8400-...", "userId": "101128207731415003767", "title": "カレーライス", "visibility": "VISIBILITY_PUBLIC", "...": "..." }
+  ],
+  "nextPageToken": "AZ..."
+}
+```
+
 #### ShareRecipe（要認証・owner のみ）
 
 対象ユーザーに relation（`RELATION_VIEWER` / `RELATION_EDITOR` / `RELATION_OWNER`）を付与します。
-restricted のレシピなら、共有相手が GetRecipe で閲覧できるようになります。
+restricted のレシピなら、共有相手が GetRecipe / ListRecipes で閲覧できるようになります。
 重複付与は `AlreadyExists`、レシピが存在しなければ `NotFound` になります。
 
 ```bash

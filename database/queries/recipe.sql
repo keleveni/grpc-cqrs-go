@@ -35,3 +35,16 @@ WHERE r.id = sqlc.arg('id')
     SELECT 1 FROM recipe_viewers v
     WHERE v.recipe_id = r.id AND v.user_id = ANY(sqlc.arg('user_ids')::text[])
   );
+
+-- name: ListViewableRecipes :many
+-- 閲覧できるレシピを新しい順（id は UUIDv7 なので id の降順）に返す。
+-- before より古いレシピだけを返す（最初のページは uuid の最大値を渡す）。
+SELECT r.id, r.user_id, r.title, r.description, r.visibility, r.created_at, r.updated_at
+FROM recipes r
+WHERE r.id < sqlc.arg('before')
+  AND EXISTS (
+    SELECT 1 FROM recipe_viewers v
+    WHERE v.recipe_id = r.id AND v.user_id = ANY(sqlc.arg('user_ids')::text[])
+  )
+ORDER BY r.id DESC
+LIMIT sqlc.arg('page_limit');
