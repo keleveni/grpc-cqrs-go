@@ -15,9 +15,8 @@ import (
 type Visibility string
 
 const (
-	VisibilityPublic     Visibility = "public"
-	VisibilityPrivate    Visibility = "private"
-	VisibilityRestricted Visibility = "restricted"
+	VisibilityPublic  Visibility = "public"
+	VisibilityPrivate Visibility = "private"
 )
 
 func (e *Visibility) Scan(src interface{}) error {

@@ -10,15 +10,29 @@ option go_package = "github.com/kodaikumatani/grpc-cqrs-go/pkg/pb/recipe/v1;reci
 service RecipeService {
   rpc CreateRecipe(CreateRecipeRequest) returns (CreateRecipeResponse);
   rpc GetRecipe(GetRecipeRequest) returns (GetRecipeResponse);
+  // 閲覧できるレシピ（public / edit 権限のある private）を新しい順に返す。
+  rpc ListRecipes(ListRecipesRequest) returns (ListRecipesResponse);
   rpc UpdateRecipe(UpdateRecipeRequest) returns (UpdateRecipeResponse);
   rpc ChangeVisibility(ChangeVisibilityRequest) returns (ChangeVisibilityResponse);
+  // レシピを他のユーザーに relation で共有する（owner だけ）。共有相手は private でも閲覧・編集できる。
+  rpc ShareRecipe(ShareRecipeRequest) returns (ShareRecipeResponse);
 }
 
 enum Visibility {
   VISIBILITY_UNSPECIFIED = 0;
   VISIBILITY_PUBLIC = 1;
   VISIBILITY_PRIVATE = 2;
-  VISIBILITY_RESTRICTED = 3;
+  reserved 3;
+  reserved "VISIBILITY_RESTRICTED";
+}
+
+// 共有相手に与えるレシピとの関係（owner ⊃ editor）
+enum Relation {
+  RELATION_UNSPECIFIED = 0;
+  reserved 1;
+  reserved "RELATION_VIEWER";
+  RELATION_EDITOR = 2;
+  RELATION_OWNER = 3;
 }
 
 message Recipe {
@@ -55,6 +69,22 @@ message User {
   string email = 3;
 }
 
+message ListRecipesRequest {
+  // 1 ページの最大件数。0 なら 20 件。
+  int32 page_size = 1 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 100
+  }];
+  // 前のレスポンスの next_page_token。最初のページは空。
+  string page_token = 2;
+}
+
+message ListRecipesResponse {
+  repeated Recipe recipes = 1;
+  // 次のページを取得するためのトークン。次のページがなければ空。
+  string next_page_token = 2;
+}
+
 message UpdateRecipeRequest {
   string id = 1 [(buf.validate.field).string.uuid = true];
   string title = 2 [(buf.validate.field).required = true];
@@ -76,3 +106,14 @@ message ChangeVisibilityRequest {
 message ChangeVisibilityResponse {
   bool success = 1;
 }
+
+message ShareRecipeRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+  string target_user_id = 2 [(buf.validate.field).required = true];
+  Relation relation = 3 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).enum.defined_only = true
+  ];
+}
+
+message ShareRecipeResponse {}

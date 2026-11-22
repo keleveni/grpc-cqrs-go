@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/app/recipe/entity"
+	"github.com/kodaikumatani/grpc-cqrs-go/internal/authz"
 	pb "github.com/kodaikumatani/grpc-cqrs-go/pkg/pb/recipe/v1"
 )
 
@@ -17,7 +18,7 @@ func TestVisibilityRoundTrip(t *testing.T) {
 			continue
 		}
 
-		d, err := visibilityFromPb(v)
+		d, err := entity.NewVisibility(visibilityFromPb(v))
 		if err != nil {
 			t.Errorf("%v: want domain value, got %v", v, err)
 			continue
@@ -30,7 +31,7 @@ func TestVisibilityRoundTrip(t *testing.T) {
 
 func TestVisibilityFromPb_Invalid(t *testing.T) {
 	for _, v := range []pb.Visibility{pb.Visibility_VISIBILITY_UNSPECIFIED, pb.Visibility(99)} {
-		if _, err := visibilityFromPb(v); !errors.Is(err, entity.ErrInvalidVisibility) {
+		if _, err := entity.NewVisibility(visibilityFromPb(v)); !errors.Is(err, entity.ErrInvalidVisibility) {
 			t.Errorf("%v: want ErrInvalidVisibility, got %v", v, err)
 		}
 	}
@@ -39,5 +40,27 @@ func TestVisibilityFromPb_Invalid(t *testing.T) {
 func TestVisibilityToPb_Unknown(t *testing.T) {
 	if got := visibilityToPb(entity.Visibility{}); got != pb.Visibility_VISIBILITY_UNSPECIFIED {
 		t.Errorf("want UNSPECIFIED, got %v", got)
+	}
+}
+
+// proto に定義されたすべての relation（UNSPECIFIED 以外）が authz の relation になること。
+func TestRelationFromPb(t *testing.T) {
+	for n := range pb.Relation_name {
+		r := pb.Relation(n)
+		if r == pb.Relation_RELATION_UNSPECIFIED {
+			continue
+		}
+
+		if _, err := authz.NewRelation(relationFromPb(r)); err != nil {
+			t.Errorf("%v: want relation, got %v", r, err)
+		}
+	}
+}
+
+func TestRelationFromPb_Invalid(t *testing.T) {
+	for _, r := range []pb.Relation{pb.Relation_RELATION_UNSPECIFIED, pb.Relation(99)} {
+		if _, err := authz.NewRelation(relationFromPb(r)); !errors.Is(err, authz.ErrUnknownRelation) {
+			t.Errorf("%v: want ErrUnknownRelation, got %v", r, err)
+		}
 	}
 }

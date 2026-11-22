@@ -12,12 +12,6 @@ func NewChecker(storage Storage) Checker {
 	return Checker{storage: storage}
 }
 
-// CanViewRecipe は userID がレシピの view 権限（viewer / editor / owner）を持つかを tuple で判定する。
-// 公開範囲（Visibility）に応じた判定は recipe の domain service（entity.Visibility.CanView）が行う。
-func (c Checker) CanViewRecipe(ctx context.Context, userID, recipeID string) error {
-	return c.hasPermission(ctx, userID, ObjectRecipe, recipeID, PermView)
-}
-
 func (c Checker) CanEditRecipe(ctx context.Context, userID, recipeID string) error {
 	return c.hasPermission(ctx, userID, ObjectRecipe, recipeID, PermEdit)
 }
@@ -29,6 +23,11 @@ func (c Checker) CanShareRecipe(ctx context.Context, userID, recipeID string) er
 // CanManageRecipe は userID がレシピの manage 権限（owner）を持つかを tuple で判定する。
 func (c Checker) CanManageRecipe(ctx context.Context, userID, recipeID string) error {
 	return c.hasPermission(ctx, userID, ObjectRecipe, recipeID, PermManage)
+}
+
+// EditableRecipeIDs は userID が edit 権限（editor / owner）を持つレシピの ID を返す（一覧の絞り込み用）。
+func (c Checker) EditableRecipeIDs(ctx context.Context, userID string) ([]string, error) {
+	return c.storage.ListObjectIDs(ctx, ObjectRecipe, userID, permissionRelations[ObjectRecipe][PermEdit])
 }
 
 func (c Checker) hasPermission(

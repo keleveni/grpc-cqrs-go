@@ -1,7 +1,6 @@
 package entity
 
 import (
-	"context"
 	"uuid"
 
 	"github.com/cockroachdb/errors"
@@ -48,9 +47,4 @@ func (r *Recipe) Edit(title, description string) {
 
 func (r *Recipe) ChangeVisibility(v Visibility) {
 	r.visibility = v
-}
-
-// CanBeEditedBy は userID がこのレシピを編集できるかを判定する（Visibility.CanEdit に委ねる）。
-func (r *Recipe) CanBeEditedBy(ctx context.Context, rels Relations, userID string) error {
-	return r.visibility.CanEdit(ctx, rels, userID, r.id.String())
 }

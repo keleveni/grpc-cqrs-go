@@ -67,7 +67,7 @@ table "recipes" {
 
 enum "visibility" {
   schema = schema.gcook
-  values = ["public", "private", "restricted"]
+  values = ["public", "private"]
 }
 
 table "relation_tuples" {
