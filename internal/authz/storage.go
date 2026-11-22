@@ -14,11 +14,11 @@ type Storage interface {
 		objectID string,
 		userID string,
 	) ([]*Tuple, error)
-	// ListUserIDs は objectType の objectID に対して relations のいずれかを持つ userID を返す。
-	ListUserIDs(
+	// ListObjectIDs は userID が relations のいずれかを持つ objectType の objectID を返す。
+	ListObjectIDs(
 		ctx context.Context,
 		objectType ObjectType,
-		objectID string,
+		userID string,
 		relations []Relation,
 	) ([]string, error)
 }

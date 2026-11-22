@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/app/recipe/entity"
+	"github.com/kodaikumatani/grpc-cqrs-go/internal/authz"
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/db/gen"
 )
 
@@ -18,14 +19,22 @@ var ErrInvalidCursor = errors.New("invalid cursor")
 //
 // 読み取りは守るべき不変条件がないので、Storage インタフェースを挟まずに
 // sqlc で生成したクエリを直接使う（薄い読み取り層）。
-// 閲覧できるかは、書き込み側が計算した読み取りモデル（recipe_viewers）を引くだけで判定する。
-// 閲覧のルール（entity.Visibility.Viewers）も authz も使わない。
+// 閲覧の判定は 2 段に分ける:
+//   - ユーザーがどのレシピに edit 権限を持つか: authz（tuple を見る）
+//   - 公開範囲ごとに権限が必要か: SQL（GetViewableRecipe / ListViewableRecipes の WHERE）
 type Query struct {
 	queries *gen.Queries
+	checker authz.Checker
 }
 
-func NewQuery(pool *pgxpool.Pool) *Query {
-	return &Query{queries: gen.New(pool)}
+func NewQuery(
+	pool *pgxpool.Pool,
+	checker authz.Checker,
+) *Query {
+	return &Query{
+		queries: gen.New(pool),
+		checker: checker,
+	}
 }
 
 // GetRecipe は userID が閲覧できるレシピと作成者の情報を返す。
@@ -38,9 +47,14 @@ func (q *Query) GetRecipe(
 	userID string,
 	id uuid.UUID,
 ) (*GetRecipeResult, error) {
+	canEdit, err := q.canEdit(ctx, userID, id)
+	if err != nil {
+		return nil, err
+	}
+
 	row, err := q.queries.GetViewableRecipe(ctx, gen.GetViewableRecipeParams{
 		ID:      id,
-		UserIds: []string{userID, entity.Everyone},
+		CanEdit: canEdit,
 	})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, entity.ErrRecipeNotFound
@@ -87,11 +101,16 @@ func (q *Query) ListRecipes(
 		before = id
 	}
 
+	editableIDs, err := q.editableRecipeIDs(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
 	// 次のページがあるかを知るために 1 件多く取る
 	rows, err := q.queries.ListViewableRecipes(ctx, gen.ListViewableRecipesParams{
-		Before:    before,
-		UserIds:   []string{userID, entity.Everyone},
-		PageLimit: limit + 1,
+		Before:      before,
+		EditableIds: editableIDs,
+		PageLimit:   limit + 1,
 	})
 	if err != nil {
 		return nil, err
@@ -122,4 +141,36 @@ func (q *Query) ListRecipes(
 	}
 
 	return result, nil
+}
+
+// canEdit は userID が id のレシピに edit 権限を持つかを返す（権限がないことはエラーにしない）。
+func (q *Query) canEdit(ctx context.Context, userID string, id uuid.UUID) (bool, error) {
+	err := q.checker.CanEditRecipe(ctx, userID, id.String())
+	if errors.Is(err, authz.ErrPermissionDenied) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
+// editableRecipeIDs は userID が edit 権限を持つレシピの id を、SQL に渡せる UUID にして返す。
+func (q *Query) editableRecipeIDs(ctx context.Context, userID string) ([]uuid.UUID, error) {
+	objectIDs, err := q.checker.EditableRecipeIDs(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	ids := make([]uuid.UUID, 0, len(objectIDs))
+	for _, objectID := range objectIDs {
+		id, err := uuid.Parse(objectID)
+		if err != nil {
+			return nil, err // tuple の object_id はレシピの id なので、読めなければデータの不整合
+		}
+		ids = append(ids, id)
+	}
+
+	return ids, nil
 }

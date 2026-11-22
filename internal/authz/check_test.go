@@ -9,12 +9,12 @@ import (
 )
 
 // fakeStorage は ListRelations が返す relation を差し替えられる Storage のスタブ。
-// ListUserIDs は受け取った relations を記録し、userIDs を返す。
+// ListObjectIDs は受け取った relations を記録し、objectIDs を返す。
 type fakeStorage struct {
 	relations []Relation
 	listErr   error
 
-	userIDs         []string
+	objectIDs       []string
 	queriedRelation *[]Relation
 }
 
@@ -40,7 +40,7 @@ func (f fakeStorage) ListRelations(
 	return tuples, nil
 }
 
-func (f fakeStorage) ListUserIDs(
+func (f fakeStorage) ListObjectIDs(
 	_ context.Context,
 	_ ObjectType,
 	_ string,
@@ -52,7 +52,7 @@ func (f fakeStorage) ListUserIDs(
 	if f.queriedRelation != nil {
 		*f.queriedRelation = relations
 	}
-	return f.userIDs, nil
+	return f.objectIDs, nil
 }
 
 var errBoom = errors.New("boom")
@@ -78,18 +78,18 @@ func TestCanManageRecipe(t *testing.T) {
 	}
 }
 
-func TestUsersWithManageRecipe(t *testing.T) {
+func TestEditableRecipeIDs(t *testing.T) {
 	var queried []Relation
-	storage := fakeStorage{userIDs: []string{"u1", "u2"}, queriedRelation: &queried}
+	storage := fakeStorage{objectIDs: []string{"r1", "r2"}, queriedRelation: &queried}
 
-	got, err := NewChecker(storage).UsersWithManageRecipe(context.Background(), "recipe")
+	got, err := NewChecker(storage).EditableRecipeIDs(context.Background(), "user")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if !slices.Equal(got, []string{"u1", "u2"}) {
-		t.Fatalf("users = %v", got)
+	if !slices.Equal(got, []string{"r1", "r2"}) {
+		t.Fatalf("ids = %v", got)
 	}
-	if !slices.Equal(queried, []Relation{RelOwner}) {
-		t.Fatalf("queried relations = %v, want [owner]", queried)
+	if !slices.Equal(queried, []Relation{RelEditor, RelOwner}) {
+		t.Fatalf("queried relations = %v, want [editor owner]", queried)
 	}
 }

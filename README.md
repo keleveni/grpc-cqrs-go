@@ -37,7 +37,7 @@ Feature-first + CQRS パターンを採用し、ドメイン（フィーチャ�
 ├── internal/
 │   ├── app/                        # アプリケーション層（フィーチャ単位）
 │   │   ├── recipe/                 # Recipe ドメイン
-│   │   │   ├── command/            #   書き込み (CreateRecipe, UpdateRecipe, ChangeVisibility, ShareRecipe) + 閲覧者の projection 更新
+│   │   │   ├── command/            #   書き込み (CreateRecipe, UpdateRecipe, ChangeVisibility, ShareRecipe)
 │   │   │   ├── query/              #   読み取り (GetRecipe, ListRecipes)
 │   │   │   ├── entity/             #   エンティティ (Recipe, Visibility)
 │   │   │   ├── handler.go          #   gRPC ハンドラー
@@ -101,7 +101,7 @@ handler.go          ← gRPC リクエストの受付・pb ⇔ ドメインの�
 ```
 
 - 書き込み側は Storage インターフェースにより app 層と DB 層が疎結合（依存の向きは `db → app`。逆向きは import cycle になるためコンパイルで防がれる）
-- 読み取り側は**薄い読み取り層**: 守るべき不変条件がないので Storage を挟まず、query が sqlc の生成コード（`internal/db/gen`）を直接使って `XxxResult` を組み立てる。閲覧できるかは、書き込み側が事前計算した読み取りモデル（`recipe_viewers`）を引くだけ（[閲覧者の読み取りモデル](#閲覧者の読み取りモデルprojection) 参照）
+- 読み取り側は**薄い読み取り層**: 守るべき不変条件がないので Storage を挟まず、query が sqlc の生成コード（`internal/db/gen`）を直接使って `XxxResult` を組み立てる。閲覧できるかの判定も SQL で行う（[認可](#認可-rebac) 参照）
 - それ以外の依存の向き（entity / command / query / authz が pb に依存しない、command / authz が db に依存しない など）は `.golangci.yml` の depguard で検査する。command と query が互いに依存しないことはレビューで守る
 - query は `query.go` にユースケース、`result.go` に `XxxResult` を置く
 - DB 層（`db/recipe`, `db/user`, `db/tuple`）は書き込み側の Storage の実装
@@ -165,36 +165,23 @@ app はそれを信頼して現在ユーザーの identity を確定・伝播す
 
 Relationship-Based Access Control を採用。
 
-- **Visibility**: `public`（誰でも見られる） / `private`（owner だけが見られる。下書き）
+- **Visibility**: `public`（誰でも見られる） / `private`（owner と editor だけが見られる。非公開の共同作業）
 - **Relation**: `owner ⊃ editor`（owner は複数可）。共有は「共同編集者（editor）を足す」こと
-- 閲覧は公開範囲（属性）だけで決め、ReBAC は編集・共有・管理に使う。レシピは見てもらうためのものなので、
-  Google Drive のように 1 人ずつ閲覧を許可する仕組み（以前の `restricted` / `viewer`）は持たない
 - **Tuple ストア**: `relation_tuples` テーブルで「誰が・何に・どの relation か」を管理。subject は不透明な文字列として扱い、ULID かどうかは authz の関心外
-- **Permission**: `map[ObjectType]map[Permission][]Relation` で action → 許可 relation を定義
-- **閲覧の認可は値オブジェクト `entity.Visibility.Viewers` が決め、結果を読み取りモデルに書く**（下の [閲覧者の読み取りモデル](#閲覧者の読み取りモデルprojection)）。public は全員 / private は manage 権限（owner）を持つユーザー
-- edit の認可は `entity.Visibility.CanEdit` が判定する（private は owner / それ以外は editor 以上。command からは `Recipe.CanBeEditedBy` 経由で呼ぶ）。share と公開範囲の変更は owner だけ（tuple で判定）
-- entity は relation（owner 等）を直接見ず、権限（edit / manage）だけを authz に問い合わせる（`CanEditRecipe` / `UsersWithManageRecipe` など）。どの relation がどの権限を与えるかは authz の `permissionRelations` だけが決める（manage = owner）
-- 公開範囲は tuple（関係）ではなくレシピの属性。認可は「tuple による関係（ReBAC）」と「公開範囲という属性」の組み合わせで、閲覧も編集も値オブジェクト `Visibility`（`Viewers` / `CanEdit`）で組み合わせる。ルールは Go のここだけにあり、SQL は持たない
+- **Permission**: `map[ObjectType]map[Permission][]Relation` で action → 許可 relation を定義（edit = owner / editor、share・manage = owner）
+- **公開範囲は閲覧だけに効く**: レシピは見てもらうためのものなので、閲覧は「public か、関係者か」だけで決める。
+  Google Drive のように 1 人ずつ閲覧を許可する仕組み（以前の `restricted` / `viewer`）は持たない
+- **編集は edit 権限だけで決まる**（公開範囲は関係ない）。share と公開範囲の変更は owner だけ。どれも command が authz に問い合わせる
+- **閲覧の判定は 2 段に分ける**:
+  - ユーザーがどのレシピに edit 権限を持つか: authz が tuple から判定する（Get は `CanEditRecipe`、List は `EditableRecipeIDs`）
+  - 公開範囲ごとに権限が必要か: SQL（`GetViewableRecipe` / `ListViewableRecipes` の WHERE）。public は誰でも / private は edit 権限
+  - recipe の SQL は `relation_tuples` を参照せず、tuple の扱いは authz の Storage に閉じる。一覧では 1 件ずつ判定できないため、
+    Get も同じ条件の SQL にして閲覧のルールを SQL だけに置く（変えるときは 2 つの SQL を直す）
+- どの relation がどの権限を与えるかは authz の `permissionRelations` だけが決める。entity / command / SQL は relation を直接扱わない
 - authz は tuple による relation の判定だけを持ち、機能（`internal/app`）には依存しない
-
-#### 閲覧者の読み取りモデル（projection）
-
-「誰がどのレシピを閲覧できるか」を、書き込み時に計算して `recipe_viewers(recipe_id, user_id)` に保存する。
-読み取り側（GetRecipe / ListRecipes）はこのテーブルを引くだけで、閲覧のルールも authz も使わない。
-
-| いつ | 何をする |
-|---|---|
-| CreateRecipe / ChangeVisibility / ShareRecipe | command の `refreshViewers` が `Recipe.Viewers`（公開範囲 + tuple）で閲覧者を計算し、`recipe_viewers` を置き換える |
-| GetRecipe / ListRecipes | `recipe_viewers.user_id IN (本人, '*')` のレシピだけを返す（1 クエリ） |
-
-- public は全ユーザーを列挙できないので、`user_id = '*'`（`entity.Everyone`）の 1 行で「全員」を表す（Zanzibar のワイルドカードと同じ考え方）
-- 閲覧者は公開範囲と tuple から決まるので、**どちらかを変える書き込みは必ず `refreshViewers` を呼ぶ**。
-  レシピの共有（ShareRecipe）もレシピに対する業務の操作として recipe の command に置き、同じ場所で閲覧者を計算し直す
-- 置き換え（削除 + 追加）は 1 トランザクションで行う。ただしレシピ・tuple・閲覧者の書き込み全体は 1 トランザクションではない
-  （レシピと tuple の作成と同じく、途中で失敗すると不整合が残りうる）
-- 閲覧のルールを変えたら、既存のレシピの `recipe_viewers` を作り直す必要がある（導入時の migration で既存データを埋めている）
-- 検討した他の方式: 読み取り時に authz が tuple から権限を判定し、公開範囲ごとの条件を SQL に書く方式。
-  整合性の心配はないが、閲覧のルールが SQL に、編集のルールが Go に分かれ、読み取りのクエリ数も増える
+- 検討した他の方式: 「誰が閲覧できるか」を書き込み時に計算して読み取り用のテーブルに保存する方式（projection）。
+  読み取りは 1 クエリで済むが、公開範囲や共有を変える書き込みのたびに計算し直す責任が生まれる。
+  閲覧のルールが「public か、edit 権限があるか」だけなので、読み取り時に判定するほうが単純
 
 ### エラー処理
 
@@ -234,12 +221,11 @@ NotFound の変換漏れがあった）。RPC ごとに「どの状況でどの�
 - 本番と同じ interceptor の並びでサーバーをテスト内に起動し（bufconn）、生成されたクライアントから RPC を呼ぶ
 - 永続化は実 DB（compose の PostgreSQL に migration を適用）を使い、db 層の翻訳まで含めて検査する
 - 検査する内容の例:
-  - GetRecipe: private は owner だけ / 存在しない・閲覧できないときは NotFound
-  - UpdateRecipe: private は owner だけ、それ以外は editor 以上 / 存在しなければ NotFound
+  - GetRecipe: private は owner と editor だけ / 存在しない・閲覧できないときは NotFound
+  - UpdateRecipe: editor 以上 / 存在しなければ NotFound
   - ChangeVisibility: owner だけ / UNSPECIFIED は InvalidArgument
   - ListRecipes: 閲覧できるレシピだけが新しい順に返る / ページをまたいで漏れや重複がない / 不正な page_token は InvalidArgument
-  - ShareRecipe: owner だけ / UNSPECIFIED は InvalidArgument / 共有済みなら AlreadyExists / public なら editor が編集できるようになる
-  - ChangeVisibility 後に、閲覧できるユーザーが GetRecipe・ListRecipes で変わる（projection の更新漏れがない）
+  - ShareRecipe: owner だけ / UNSPECIFIED は InvalidArgument / 共有済みなら AlreadyExists / 共有相手は private でも閲覧・編集できるようになる
   - CreateUser: 同じ sub なら AlreadyExists
   - 全 RPC: 認証されていなければ Unauthenticated、想定外のエラーは Internal で中身を隠す
 
@@ -325,7 +311,7 @@ grpcurl -plaintext -H "x-endpoint-api-userinfo: $INFO" -d '{
 }' localhost:50051 recipe.v1.RecipeService/CreateRecipe
 ```
 
-#### UpdateRecipe（要認証・private は owner のみ、それ以外は editor 以上）
+#### UpdateRecipe（要認証・editor 以上）
 
 ```bash
 grpcurl -plaintext -H "x-endpoint-api-userinfo: $INFO" -d '{
@@ -346,7 +332,7 @@ grpcurl -plaintext -H "x-endpoint-api-userinfo: $INFO" -d '{
 
 #### GetRecipe
 
-visibility に応じて認可されます（public は誰でも / private は owner）。
+visibility に応じて認可されます（public は誰でも / private は owner と editor）。
 閲覧できないレシピは、存在しないレシピと同じく `NOT_FOUND` になります（存在を外から区別できないようにするため）。
 
 ```bash
@@ -396,7 +382,7 @@ grpcurl -plaintext -H "x-endpoint-api-userinfo: $INFO" -d '{
 #### ShareRecipe（要認証・owner のみ）
 
 対象ユーザーに relation（`RELATION_EDITOR` / `RELATION_OWNER`）を付与します。
-editor は public のレシピを編集でき、owner は private のレシピの閲覧・編集や公開範囲の変更もできます。
+共有相手は private のレシピも閲覧・編集できます。owner は公開範囲の変更や共有もできます。
 重複付与は `AlreadyExists`、レシピが存在しなければ `NotFound` になります。
 
 ```bash

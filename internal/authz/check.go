@@ -25,18 +25,9 @@ func (c Checker) CanManageRecipe(ctx context.Context, userID, recipeID string) e
 	return c.hasPermission(ctx, userID, ObjectRecipe, recipeID, PermManage)
 }
 
-// UsersWithManageRecipe は recipeID の manage 権限（owner）を持つユーザーを返す（閲覧者の計算用）。
-func (c Checker) UsersWithManageRecipe(ctx context.Context, recipeID string) ([]string, error) {
-	return c.usersWith(ctx, ObjectRecipe, recipeID, PermManage)
-}
-
-func (c Checker) usersWith(
-	ctx context.Context,
-	objectType ObjectType,
-	objectID string,
-	perm Permission,
-) ([]string, error) {
-	return c.storage.ListUserIDs(ctx, objectType, objectID, permissionRelations[objectType][perm])
+// EditableRecipeIDs は userID が edit 権限（editor / owner）を持つレシピの ID を返す（一覧の絞り込み用）。
+func (c Checker) EditableRecipeIDs(ctx context.Context, userID string) ([]string, error) {
+	return c.storage.ListObjectIDs(ctx, ObjectRecipe, userID, permissionRelations[ObjectRecipe][PermEdit])
 }
 
 func (c Checker) hasPermission(

@@ -36,30 +36,6 @@ func (q *Queries) CreateRecipe(ctx context.Context, arg CreateRecipeParams) erro
 	return err
 }
 
-const createRecipeViewers = `-- name: CreateRecipeViewers :exec
-INSERT INTO recipe_viewers (recipe_id, user_id)
-SELECT $1::uuid, unnest($2::text[])
-`
-
-type CreateRecipeViewersParams struct {
-	RecipeID uuid.UUID
-	UserIds  []string
-}
-
-func (q *Queries) CreateRecipeViewers(ctx context.Context, arg CreateRecipeViewersParams) error {
-	_, err := q.db.Exec(ctx, createRecipeViewers, arg.RecipeID, arg.UserIds)
-	return err
-}
-
-const deleteRecipeViewers = `-- name: DeleteRecipeViewers :exec
-DELETE FROM recipe_viewers WHERE recipe_id = $1
-`
-
-func (q *Queries) DeleteRecipeViewers(ctx context.Context, recipeID uuid.UUID) error {
-	_, err := q.db.Exec(ctx, deleteRecipeViewers, recipeID)
-	return err
-}
-
 const getRecipe = `-- name: GetRecipe :one
 SELECT id, user_id, title, description, visibility
 FROM recipes
@@ -94,15 +70,12 @@ SELECT r.id, r.user_id, r.title, r.description, r.visibility, r.created_at, r.up
 FROM recipes r
 JOIN users u ON r.user_id = u.id
 WHERE r.id = $1
-  AND EXISTS (
-    SELECT 1 FROM recipe_viewers v
-    WHERE v.recipe_id = r.id AND v.user_id = ANY($2::text[])
-  )
+  AND (r.visibility = 'public' OR $2::bool)
 `
 
 type GetViewableRecipeParams struct {
 	ID      uuid.UUID
-	UserIds []string
+	CanEdit bool
 }
 
 type GetViewableRecipeRow struct {
@@ -117,13 +90,15 @@ type GetViewableRecipeRow struct {
 	UserEmail   string
 }
 
-// 読み取り側は、書き込み側が計算した recipe_viewers（projection）を引くだけで、閲覧のルールは持たない。
-// user_ids には、ユーザー本人と「全員」（'*'。public のレシピの閲覧者）を渡す。
+// 閲覧の条件（公開範囲ごとに必要な権限）は、この 2 つのクエリ（GetViewableRecipe / ListViewableRecipes）だけが持つ。
+// 2 つの WHERE の閲覧条件は同じにする（変えるときは両方直す）: public は誰でも / private は edit 権限（owner / editor）
+// ユーザーが権限を持つかどうかは authz が tuple から判定して渡す（ここでは relation_tuples を参照しない）。
 // 閲覧できるときだけレシピと作成者を返す（存在しない・閲覧できないときは行なし）。
+// can_edit は、ユーザーがこのレシピに edit 権限を持つか（authz が判定する）。
 // recipes.user_id は NOT NULL かつ users への外部キー（ON DELETE NO ACTION）なので、
 // INNER JOIN でレシピの行が落ちることはない。
 func (q *Queries) GetViewableRecipe(ctx context.Context, arg GetViewableRecipeParams) (GetViewableRecipeRow, error) {
-	row := q.db.QueryRow(ctx, getViewableRecipe, arg.ID, arg.UserIds)
+	row := q.db.QueryRow(ctx, getViewableRecipe, arg.ID, arg.CanEdit)
 	var i GetViewableRecipeRow
 	err := row.Scan(
 		&i.ID,
@@ -143,18 +118,15 @@ const listViewableRecipes = `-- name: ListViewableRecipes :many
 SELECT r.id, r.user_id, r.title, r.description, r.visibility, r.created_at, r.updated_at
 FROM recipes r
 WHERE r.id < $1
-  AND EXISTS (
-    SELECT 1 FROM recipe_viewers v
-    WHERE v.recipe_id = r.id AND v.user_id = ANY($2::text[])
-  )
+  AND (r.visibility = 'public' OR r.id = ANY($2::uuid[]))
 ORDER BY r.id DESC
 LIMIT $3
 `
 
 type ListViewableRecipesParams struct {
-	Before    uuid.UUID
-	UserIds   []string
-	PageLimit int32
+	Before      uuid.UUID
+	EditableIds []uuid.UUID
+	PageLimit   int32
 }
 
 type ListViewableRecipesRow struct {
@@ -168,9 +140,10 @@ type ListViewableRecipesRow struct {
 }
 
 // 閲覧できるレシピを新しい順（id は UUIDv7 なので id の降順）に返す。
+// editable_ids は、ユーザーが edit 権限を持つレシピの id（authz が判定する）。
 // before より古いレシピだけを返す（最初のページは uuid の最大値を渡す）。
 func (q *Queries) ListViewableRecipes(ctx context.Context, arg ListViewableRecipesParams) ([]ListViewableRecipesRow, error) {
-	rows, err := q.db.Query(ctx, listViewableRecipes, arg.Before, arg.UserIds, arg.PageLimit)
+	rows, err := q.db.Query(ctx, listViewableRecipes, arg.Before, arg.EditableIds, arg.PageLimit)
 	if err != nil {
 		return nil, err
 	}

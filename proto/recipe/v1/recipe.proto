@@ -10,11 +10,11 @@ option go_package = "github.com/kodaikumatani/grpc-cqrs-go/pkg/pb/recipe/v1;reci
 service RecipeService {
   rpc CreateRecipe(CreateRecipeRequest) returns (CreateRecipeResponse);
   rpc GetRecipe(GetRecipeRequest) returns (GetRecipeResponse);
-  // 閲覧できるレシピ（public / manage 権限のある private）を新しい順に返す。
+  // 閲覧できるレシピ（public / edit 権限のある private）を新しい順に返す。
   rpc ListRecipes(ListRecipesRequest) returns (ListRecipesResponse);
   rpc UpdateRecipe(UpdateRecipeRequest) returns (UpdateRecipeResponse);
   rpc ChangeVisibility(ChangeVisibilityRequest) returns (ChangeVisibilityResponse);
-  // レシピを他のユーザーに relation で共有する（owner だけ）。public なら editor は編集できるようになる。
+  // レシピを他のユーザーに relation で共有する（owner だけ）。共有相手は private でも閲覧・編集できる。
   rpc ShareRecipe(ShareRecipeRequest) returns (ShareRecipeResponse);
 }
 
