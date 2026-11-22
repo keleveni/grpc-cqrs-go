@@ -8,6 +8,7 @@ import (
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/app/recipe/command"
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/app/recipe/entity"
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/app/recipe/query"
+	"github.com/kodaikumatani/grpc-cqrs-go/internal/authz"
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/grpcerr"
 	"github.com/kodaikumatani/grpc-cqrs-go/internal/identity"
 	pb "github.com/kodaikumatani/grpc-cqrs-go/pkg/pb/recipe/v1"
@@ -18,6 +19,8 @@ import (
 const (
 	msgInvalidVisibility = "invalid visibility"
 	msgRecipeNotFound    = "recipe not found"
+	msgInvalidRelation   = "invalid relation"
+	msgAlreadyShared     = "recipe already shared with this user"
 )
 
 type handler struct {
@@ -150,6 +153,40 @@ func (h *handler) ChangeVisibility(
 	return &pb.ChangeVisibilityResponse{Success: true}, nil
 }
 
+func (h *handler) ShareRecipe(
+	ctx context.Context,
+	in *pb.ShareRecipeRequest,
+) (*pb.ShareRecipeResponse, error) {
+	id, err := uuid.Parse(in.GetId())
+	if err != nil {
+		return nil, grpcerr.WithStatus(err, codes.InvalidArgument, err.Error())
+	}
+
+	userID, err := identity.UserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := h.command.ShareRecipe(ctx,
+		userID,
+		id,
+		in.GetTargetUserId(),
+		relationFromPb(in.GetRelation())); err != nil {
+		switch {
+		case errors.Is(err, authz.ErrUnknownRelation):
+			return nil, grpcerr.WithStatus(err, codes.InvalidArgument, msgInvalidRelation)
+		case errors.Is(err, entity.ErrRecipeNotFound):
+			return nil, grpcerr.WithStatus(err, codes.NotFound, msgRecipeNotFound)
+		case errors.Is(err, authz.ErrAlreadyExists):
+			return nil, grpcerr.WithStatus(err, codes.AlreadyExists, msgAlreadyShared)
+		default:
+			return nil, err
+		}
+	}
+
+	return &pb.ShareRecipeResponse{}, nil
+}
+
 // visibilityFromPb は pb の Visibility を、ユースケースに渡す公開範囲の文字列にする。
 // UNSPECIFIED や未定義の値は空文字にする（ドメインの entity.NewVisibility が ErrInvalidVisibility にする）。
 func visibilityFromPb(v pb.Visibility) string {
@@ -177,5 +214,20 @@ func visibilityToPb(v entity.Visibility) pb.Visibility {
 		return pb.Visibility_VISIBILITY_RESTRICTED
 	default:
 		return pb.Visibility_VISIBILITY_UNSPECIFIED
+	}
+}
+
+// relationFromPb は pb の Relation を、ユースケースに渡す relation の文字列にする。
+// UNSPECIFIED や未定義の値は空文字にする（authz.NewRelation が ErrUnknownRelation にする）。
+func relationFromPb(r pb.Relation) string {
+	switch r {
+	case pb.Relation_RELATION_VIEWER:
+		return authz.RelViewer.String()
+	case pb.Relation_RELATION_EDITOR:
+		return authz.RelEditor.String()
+	case pb.Relation_RELATION_OWNER:
+		return authz.RelOwner.String()
+	default:
+		return ""
 	}
 }

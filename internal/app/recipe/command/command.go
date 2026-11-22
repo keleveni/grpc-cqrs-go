@@ -122,3 +122,42 @@ func (u *Command) ChangeVisibility(
 
 	return u.storage.Update(ctx, recipe)
 }
+
+// ShareRecipe はレシピを targetUserID に relation で共有する。共有できるのは owner だけ。
+//
+// 返しうるエラー:
+//   - authz.ErrUnknownRelation: relation が relation として不正
+//   - authz.ErrPermissionDenied: 共有権限がない（レシピが存在しない場合もこちらになる）
+//   - entity.ErrRecipeNotFound: 共有権限はあるがレシピが存在しない
+//   - authz.ErrAlreadyExists: 同じ relation で既に共有済み
+func (u *Command) ShareRecipe(
+	ctx context.Context,
+	userID string,
+	id uuid.UUID,
+	targetUserID string,
+	relation string,
+) error {
+	rel, err := authz.NewRelation(relation)
+	if err != nil {
+		return err
+	}
+
+	if err := u.checker.CanShareRecipe(ctx, userID, id.String()); err != nil {
+		return err
+	}
+
+	recipe, err := u.storage.Get(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	tp := authz.NewTuple(
+		uuid.New(),
+		authz.ObjectRecipe,
+		recipe.ID().String(),
+		rel,
+		targetUserID,
+	)
+
+	return u.tuple.CreateTuple(ctx, tp)
+}

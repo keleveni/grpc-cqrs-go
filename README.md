@@ -37,7 +37,7 @@ Feature-first + CQRS パターンを採用し、ドメイン（フィーチャ�
 ├── internal/
 │   ├── app/                        # アプリケーション層（フィーチャ単位）
 │   │   ├── recipe/                 # Recipe ドメイン
-│   │   │   ├── command/            #   書き込み (CreateRecipe, UpdateRecipe, ChangeVisibility)
+│   │   │   ├── command/            #   書き込み (CreateRecipe, UpdateRecipe, ChangeVisibility, ShareRecipe)
 │   │   │   ├── query/              #   読み取り (GetRecipe)
 │   │   │   ├── entity/             #   エンティティ (Recipe, Visibility)
 │   │   │   ├── handler.go          #   gRPC ハンドラー
@@ -45,10 +45,6 @@ Feature-first + CQRS パターンを採用し、ドメイン（フィーチャ�
 │   │   ├── user/                   # User ドメイン
 │   │   │   ├── command/            #   書き込み (CreateUser)
 │   │   │   ├── entity/             #   エンティティ (User)
-│   │   │   ├── handler.go
-│   │   │   └── wire.go
-│   │   ├── share/                  # Share 機能（レシピ共有）
-│   │   │   ├── command.go          #   ShareRecipe（tuple 付与）
 │   │   │   ├── handler.go
 │   │   │   └── wire.go
 │   │   ├── registrar.go            #   サービス登録
@@ -83,7 +79,7 @@ Feature-first + CQRS パターンを採用し、ドメイン（フィーチャ�
 ├── Dockerfile                      # app イメージ (multi-stage / distroless / arm64)
 ├── Dockerfile.migrate              # migrate イメージ (Atlas + migrations 同梱)
 ├── .github/workflows/build.yml     # Release publish で GHCR へ arm64 push
-├── pkg/pb/                         # Protobuf 生成コード (recipe/share/user の v1)
+├── pkg/pb/                         # Protobuf 生成コード (recipe/user の v1)
 ├── proto/                          # Protobuf 定義 (<name>/v1/<name>.proto)
 ├── atlas.hcl                       # Atlas 設定
 ├── buf.yaml / buf.gen.yaml         # Buf 設定
@@ -219,7 +215,7 @@ NotFound の変換漏れがあった）。RPC ごとに「どの状況でどの�
   - GetRecipe: private は owner だけ / restricted は共有された相手だけ / 存在しなければ NotFound
   - UpdateRecipe: private は owner だけ、それ以外は editor 以上 / 存在しなければ NotFound
   - ChangeVisibility: owner だけ / UNSPECIFIED は InvalidArgument
-  - ShareRecipe: owner だけ / 共有済みなら AlreadyExists
+  - ShareRecipe: owner だけ / UNSPECIFIED は InvalidArgument / 共有済みなら AlreadyExists
   - CreateUser: 同じ sub なら AlreadyExists
   - 全 RPC: 認証されていなければ Unauthenticated、想定外のエラーは Internal で中身を隠す
 
@@ -351,18 +347,17 @@ grpcurl -plaintext -H "x-endpoint-api-userinfo: $INFO" -d '{
 ```
 （`userId` / `user.id` は IdP の `sub`。recipe の `id` は UUID）
 
-### ShareService
-
 #### ShareRecipe（要認証・owner のみ）
 
-対象ユーザーに `viewer` / `editor` を付与します。重複付与は `AlreadyExists` になります。
+対象ユーザーに relation（`RELATION_VIEWER` / `RELATION_EDITOR` / `RELATION_OWNER`）を付与します。
+重複付与は `AlreadyExists`、レシピが存在しなければ `NotFound` になります。
 
 ```bash
 grpcurl -plaintext -H "x-endpoint-api-userinfo: $INFO" -d '{
-  "recipe_id": "<recipe_id>",
+  "id": "<recipe_id>",
   "target_user_id": "<user_id>",
-  "relation": "viewer"
-}' localhost:50051 share.v1.ShareService/ShareRecipe
+  "relation": "RELATION_VIEWER"
+}' localhost:50051 recipe.v1.RecipeService/ShareRecipe
 ```
 
 ### サービス一覧の確認
