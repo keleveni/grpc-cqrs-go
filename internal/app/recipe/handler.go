@@ -246,8 +246,6 @@ func visibilityFromPb(v pb.Visibility) string {
 		return entity.VisibilityPublic.String()
 	case pb.Visibility_VISIBILITY_PRIVATE:
 		return entity.VisibilityPrivate.String()
-	case pb.Visibility_VISIBILITY_RESTRICTED:
-		return entity.VisibilityRestricted.String()
 	default:
 		return ""
 	}
@@ -261,8 +259,6 @@ func visibilityToPb(v entity.Visibility) pb.Visibility {
 		return pb.Visibility_VISIBILITY_PUBLIC
 	case entity.VisibilityPrivate:
 		return pb.Visibility_VISIBILITY_PRIVATE
-	case entity.VisibilityRestricted:
-		return pb.Visibility_VISIBILITY_RESTRICTED
 	default:
 		return pb.Visibility_VISIBILITY_UNSPECIFIED
 	}
@@ -272,8 +268,6 @@ func visibilityToPb(v entity.Visibility) pb.Visibility {
 // UNSPECIFIED や未定義の値は空文字にする（authz.NewRelation が ErrUnknownRelation にする）。
 func relationFromPb(r pb.Relation) string {
 	switch r {
-	case pb.Relation_RELATION_VIEWER:
-		return authz.RelViewer.String()
 	case pb.Relation_RELATION_EDITOR:
 		return authz.RelEditor.String()
 	case pb.Relation_RELATION_OWNER:

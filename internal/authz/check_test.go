@@ -65,7 +65,6 @@ func TestCanManageRecipe(t *testing.T) {
 	}{
 		{name: "owner は manage 権限を持つ", storage: fakeStorage{relations: []Relation{RelOwner}}, want: nil},
 		{name: "editor は manage 権限を持たない", storage: fakeStorage{relations: []Relation{RelEditor}}, want: ErrPermissionDenied},
-		{name: "viewer は manage 権限を持たない", storage: fakeStorage{relations: []Relation{RelViewer}}, want: ErrPermissionDenied},
 		{name: "storage のエラーはそのまま返す", storage: fakeStorage{listErr: errBoom}, want: errBoom},
 	}
 
@@ -79,39 +78,18 @@ func TestCanManageRecipe(t *testing.T) {
 	}
 }
 
-func TestUsersWithRecipe(t *testing.T) {
-	tests := []struct {
-		name  string
-		call  func(Checker) ([]string, error)
-		wantQ []Relation
-	}{
-		{
-			name:  "manage 権限は owner で検索する",
-			call:  func(c Checker) ([]string, error) { return c.UsersWithManageRecipe(context.Background(), "recipe") },
-			wantQ: []Relation{RelOwner},
-		},
-		{
-			name:  "view 権限は viewer / editor / owner で検索する",
-			call:  func(c Checker) ([]string, error) { return c.UsersWithViewRecipe(context.Background(), "recipe") },
-			wantQ: []Relation{RelViewer, RelEditor, RelOwner},
-		},
+func TestUsersWithManageRecipe(t *testing.T) {
+	var queried []Relation
+	storage := fakeStorage{userIDs: []string{"u1", "u2"}, queriedRelation: &queried}
+
+	got, err := NewChecker(storage).UsersWithManageRecipe(context.Background(), "recipe")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			var queried []Relation
-			storage := fakeStorage{userIDs: []string{"u1", "u2"}, queriedRelation: &queried}
-
-			got, err := tt.call(NewChecker(storage))
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			if !slices.Equal(got, []string{"u1", "u2"}) {
-				t.Fatalf("users = %v", got)
-			}
-			if !slices.Equal(queried, tt.wantQ) {
-				t.Fatalf("queried relations = %v, want %v", queried, tt.wantQ)
-			}
-		})
+	if !slices.Equal(got, []string{"u1", "u2"}) {
+		t.Fatalf("users = %v", got)
+	}
+	if !slices.Equal(queried, []Relation{RelOwner}) {
+		t.Fatalf("queried relations = %v, want [owner]", queried)
 	}
 }

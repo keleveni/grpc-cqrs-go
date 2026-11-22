@@ -172,7 +172,6 @@ func (u *Command) ShareRecipe(
 		return err
 	}
 
-	// restricted なら共有相手が閲覧できるようになる
 	return u.refreshViewers(ctx, recipe)
 }
 

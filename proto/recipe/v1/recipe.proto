@@ -10,11 +10,11 @@ option go_package = "github.com/kodaikumatani/grpc-cqrs-go/pkg/pb/recipe/v1;reci
 service RecipeService {
   rpc CreateRecipe(CreateRecipeRequest) returns (CreateRecipeResponse);
   rpc GetRecipe(GetRecipeRequest) returns (GetRecipeResponse);
-  // 閲覧できるレシピ（public / manage 権限のある private / view 権限のある restricted）を新しい順に返す。
+  // 閲覧できるレシピ（public / manage 権限のある private）を新しい順に返す。
   rpc ListRecipes(ListRecipesRequest) returns (ListRecipesResponse);
   rpc UpdateRecipe(UpdateRecipeRequest) returns (UpdateRecipeResponse);
   rpc ChangeVisibility(ChangeVisibilityRequest) returns (ChangeVisibilityResponse);
-  // レシピを他のユーザーに relation で共有する（owner だけ）。restricted なら共有相手が閲覧できるようになる。
+  // レシピを他のユーザーに relation で共有する（owner だけ）。public なら editor は編集できるようになる。
   rpc ShareRecipe(ShareRecipeRequest) returns (ShareRecipeResponse);
 }
 
@@ -22,13 +22,15 @@ enum Visibility {
   VISIBILITY_UNSPECIFIED = 0;
   VISIBILITY_PUBLIC = 1;
   VISIBILITY_PRIVATE = 2;
-  VISIBILITY_RESTRICTED = 3;
+  reserved 3;
+  reserved "VISIBILITY_RESTRICTED";
 }
 
-// 共有相手に与えるレシピとの関係（owner ⊃ editor ⊃ viewer）
+// 共有相手に与えるレシピとの関係（owner ⊃ editor）
 enum Relation {
   RELATION_UNSPECIFIED = 0;
-  RELATION_VIEWER = 1;
+  reserved 1;
+  reserved "RELATION_VIEWER";
   RELATION_EDITOR = 2;
   RELATION_OWNER = 3;
 }

@@ -29,7 +29,6 @@ const (
 	Visibility_VISIBILITY_UNSPECIFIED Visibility = 0
 	Visibility_VISIBILITY_PUBLIC      Visibility = 1
 	Visibility_VISIBILITY_PRIVATE     Visibility = 2
-	Visibility_VISIBILITY_RESTRICTED  Visibility = 3
 )
 
 // Enum value maps for Visibility.
@@ -38,13 +37,11 @@ var (
 		0: "VISIBILITY_UNSPECIFIED",
 		1: "VISIBILITY_PUBLIC",
 		2: "VISIBILITY_PRIVATE",
-		3: "VISIBILITY_RESTRICTED",
 	}
 	Visibility_value = map[string]int32{
 		"VISIBILITY_UNSPECIFIED": 0,
 		"VISIBILITY_PUBLIC":      1,
 		"VISIBILITY_PRIVATE":     2,
-		"VISIBILITY_RESTRICTED":  3,
 	}
 )
 
@@ -75,12 +72,11 @@ func (Visibility) EnumDescriptor() ([]byte, []int) {
 	return file_recipe_v1_recipe_proto_rawDescGZIP(), []int{0}
 }
 
-// 共有相手に与えるレシピとの関係（owner ⊃ editor ⊃ viewer）
+// 共有相手に与えるレシピとの関係（owner ⊃ editor）
 type Relation int32
 
 const (
 	Relation_RELATION_UNSPECIFIED Relation = 0
-	Relation_RELATION_VIEWER      Relation = 1
 	Relation_RELATION_EDITOR      Relation = 2
 	Relation_RELATION_OWNER       Relation = 3
 )
@@ -89,13 +85,11 @@ const (
 var (
 	Relation_name = map[int32]string{
 		0: "RELATION_UNSPECIFIED",
-		1: "RELATION_VIEWER",
 		2: "RELATION_EDITOR",
 		3: "RELATION_OWNER",
 	}
 	Relation_value = map[string]int32{
 		"RELATION_UNSPECIFIED": 0,
-		"RELATION_VIEWER":      1,
 		"RELATION_EDITOR":      2,
 		"RELATION_OWNER":       3,
 	}
@@ -930,18 +924,16 @@ const file_recipe_v1_recipe_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\x12,\n" +
 	"\x0etarget_user_id\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\ftargetUserId\x12<\n" +
 	"\brelation\x18\x03 \x01(\x0e2\x13.recipe.v1.RelationB\v\xbaH\b\xc8\x01\x01\x82\x01\x02\x10\x01R\brelation\"\x15\n" +
-	"\x13ShareRecipeResponse*r\n" +
+	"\x13ShareRecipeResponse*t\n" +
 	"\n" +
 	"Visibility\x12\x1a\n" +
 	"\x16VISIBILITY_UNSPECIFIED\x10\x00\x12\x15\n" +
 	"\x11VISIBILITY_PUBLIC\x10\x01\x12\x16\n" +
-	"\x12VISIBILITY_PRIVATE\x10\x02\x12\x19\n" +
-	"\x15VISIBILITY_RESTRICTED\x10\x03*b\n" +
+	"\x12VISIBILITY_PRIVATE\x10\x02\"\x04\b\x03\x10\x03*\x15VISIBILITY_RESTRICTED*d\n" +
 	"\bRelation\x12\x18\n" +
 	"\x14RELATION_UNSPECIFIED\x10\x00\x12\x13\n" +
-	"\x0fRELATION_VIEWER\x10\x01\x12\x13\n" +
 	"\x0fRELATION_EDITOR\x10\x02\x12\x12\n" +
-	"\x0eRELATION_OWNER\x10\x032\xf2\x03\n" +
+	"\x0eRELATION_OWNER\x10\x03\"\x04\b\x01\x10\x01*\x0fRELATION_VIEWER2\xf2\x03\n" +
 	"\rRecipeService\x12O\n" +
 	"\fCreateRecipe\x12\x1e.recipe.v1.CreateRecipeRequest\x1a\x1f.recipe.v1.CreateRecipeResponse\x12F\n" +
 	"\tGetRecipe\x12\x1b.recipe.v1.GetRecipeRequest\x1a\x1c.recipe.v1.GetRecipeResponse\x12L\n" +

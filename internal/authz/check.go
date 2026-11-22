@@ -30,11 +30,6 @@ func (c Checker) UsersWithManageRecipe(ctx context.Context, recipeID string) ([]
 	return c.usersWith(ctx, ObjectRecipe, recipeID, PermManage)
 }
 
-// UsersWithViewRecipe は recipeID の view 権限（viewer / editor / owner）を持つユーザーを返す（閲覧者の計算用）。
-func (c Checker) UsersWithViewRecipe(ctx context.Context, recipeID string) ([]string, error) {
-	return c.usersWith(ctx, ObjectRecipe, recipeID, PermView)
-}
-
 func (c Checker) usersWith(
 	ctx context.Context,
 	objectType ObjectType,

@@ -57,7 +57,6 @@ type Relation string
 
 const (
 	RelOwner  Relation = "owner"
-	RelViewer Relation = "viewer"
 	RelEditor Relation = "editor"
 )
 
@@ -69,8 +68,6 @@ func NewRelation(relation string) (Relation, error) {
 	switch relation {
 	case RelOwner.String():
 		return RelOwner, nil
-	case RelViewer.String():
-		return RelViewer, nil
 	case RelEditor.String():
 		return RelEditor, nil
 	default:
@@ -81,8 +78,7 @@ func NewRelation(relation string) (Relation, error) {
 type Permission int
 
 const (
-	PermView Permission = iota
-	PermEdit
+	PermEdit Permission = iota
 	PermDelete
 	PermShare
 	PermManage
@@ -90,7 +86,6 @@ const (
 
 var permissionRelations = map[ObjectType]map[Permission][]Relation{
 	ObjectRecipe: {
-		PermView:   {RelViewer, RelEditor, RelOwner},
 		PermEdit:   {RelEditor, RelOwner},
 		PermDelete: {RelOwner},
 		PermShare:  {RelOwner},

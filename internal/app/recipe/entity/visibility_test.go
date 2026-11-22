@@ -11,7 +11,7 @@ var errDenied = errors.New("denied")
 
 // fakeRelations は manage / edit 権限の有無を差し替えられる Relations のスタブ。
 // 呼ばれたメソッドを記録し、公開範囲ごとに正しい問い合わせをしているかを確かめる。
-// UsersWith* は、どちらが呼ばれたか分かるように固定のユーザーを返す。
+// UsersWithManageRecipe は固定のユーザーを返す。
 type fakeRelations struct {
 	manager, editor bool
 	called          []string
@@ -20,11 +20,6 @@ type fakeRelations struct {
 func (f *fakeRelations) UsersWithManageRecipe(context.Context, string) ([]string, error) {
 	f.called = append(f.called, "UsersWithManageRecipe")
 	return []string{"owner"}, nil
-}
-
-func (f *fakeRelations) UsersWithViewRecipe(context.Context, string) ([]string, error) {
-	f.called = append(f.called, "UsersWithViewRecipe")
-	return []string{"owner", "viewer"}, nil
 }
 
 func (f *fakeRelations) CanManageRecipe(context.Context, string, string) error {
@@ -66,8 +61,8 @@ func TestVisibility_CanEdit(t *testing.T) {
 			wantCalled: []string{"CanManageRecipe"},
 		},
 		{
-			name:       "restricted は edit 権限があれば編集できる",
-			visibility: VisibilityRestricted,
+			name:       "public は edit 権限があれば編集できる",
+			visibility: VisibilityPublic,
 			rels:       fakeRelations{editor: true},
 			want:       nil,
 			wantCalled: []string{"CanEditRecipe"},
@@ -125,12 +120,6 @@ func TestVisibility_Viewers(t *testing.T) {
 			visibility: VisibilityPrivate,
 			want:       []string{"owner"},
 			wantCalled: []string{"UsersWithManageRecipe"},
-		},
-		{
-			name:       "restricted は view 権限を持つユーザー",
-			visibility: VisibilityRestricted,
-			want:       []string{"owner", "viewer"},
-			wantCalled: []string{"UsersWithViewRecipe"},
 		},
 		{
 			name:       "未知の公開範囲は ErrInvalidVisibility",

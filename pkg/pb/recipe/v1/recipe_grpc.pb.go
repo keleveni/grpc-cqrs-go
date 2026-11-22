@@ -33,11 +33,11 @@ const (
 type RecipeServiceClient interface {
 	CreateRecipe(ctx context.Context, in *CreateRecipeRequest, opts ...grpc.CallOption) (*CreateRecipeResponse, error)
 	GetRecipe(ctx context.Context, in *GetRecipeRequest, opts ...grpc.CallOption) (*GetRecipeResponse, error)
-	// 閲覧できるレシピ（public / manage 権限のある private / view 権限のある restricted）を新しい順に返す。
+	// 閲覧できるレシピ（public / manage 権限のある private）を新しい順に返す。
 	ListRecipes(ctx context.Context, in *ListRecipesRequest, opts ...grpc.CallOption) (*ListRecipesResponse, error)
 	UpdateRecipe(ctx context.Context, in *UpdateRecipeRequest, opts ...grpc.CallOption) (*UpdateRecipeResponse, error)
 	ChangeVisibility(ctx context.Context, in *ChangeVisibilityRequest, opts ...grpc.CallOption) (*ChangeVisibilityResponse, error)
-	// レシピを他のユーザーに relation で共有する（owner だけ）。restricted なら共有相手が閲覧できるようになる。
+	// レシピを他のユーザーに relation で共有する（owner だけ）。public なら editor は編集できるようになる。
 	ShareRecipe(ctx context.Context, in *ShareRecipeRequest, opts ...grpc.CallOption) (*ShareRecipeResponse, error)
 }
 
@@ -115,11 +115,11 @@ func (c *recipeServiceClient) ShareRecipe(ctx context.Context, in *ShareRecipeRe
 type RecipeServiceServer interface {
 	CreateRecipe(context.Context, *CreateRecipeRequest) (*CreateRecipeResponse, error)
 	GetRecipe(context.Context, *GetRecipeRequest) (*GetRecipeResponse, error)
-	// 閲覧できるレシピ（public / manage 権限のある private / view 権限のある restricted）を新しい順に返す。
+	// 閲覧できるレシピ（public / manage 権限のある private）を新しい順に返す。
 	ListRecipes(context.Context, *ListRecipesRequest) (*ListRecipesResponse, error)
 	UpdateRecipe(context.Context, *UpdateRecipeRequest) (*UpdateRecipeResponse, error)
 	ChangeVisibility(context.Context, *ChangeVisibilityRequest) (*ChangeVisibilityResponse, error)
-	// レシピを他のユーザーに relation で共有する（owner だけ）。restricted なら共有相手が閲覧できるようになる。
+	// レシピを他のユーザーに relation で共有する（owner だけ）。public なら editor は編集できるようになる。
 	ShareRecipe(context.Context, *ShareRecipeRequest) (*ShareRecipeResponse, error)
 	mustEmbedUnimplementedRecipeServiceServer()
 }

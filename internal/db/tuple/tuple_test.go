@@ -85,7 +85,7 @@ func TestCreateTuple_ErrorTranslation(t *testing.T) {
 
 			got := repo.CreateTuple(
 				context.Background(),
-				authz.NewTuple(uuid.New(), authz.ObjectRecipe, "recipe-1", authz.RelViewer, "user-1"),
+				authz.NewTuple(uuid.New(), authz.ObjectRecipe, "recipe-1", authz.RelEditor, "user-1"),
 			)
 
 			tt.check(t, got)
