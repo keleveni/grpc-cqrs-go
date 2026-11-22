@@ -14,11 +14,12 @@ import (
 
 // store は recipe の command.Storage 実装。
 type store struct {
+	pool    *pgxpool.Pool
 	queries *gen.Queries
 }
 
 func NewStore(pool *pgxpool.Pool) command.Storage {
-	return &store{queries: gen.New(pool)}
+	return &store{pool: pool, queries: gen.New(pool)}
 }
 
 func (s *store) Create(ctx context.Context, rec *entity.Recipe) error {
@@ -61,4 +62,26 @@ func (s *store) Update(ctx context.Context, rec *entity.Recipe) error {
 		Description: rec.Description(),
 		Visibility:  gen.Visibility(rec.Visibility().String()),
 	})
+}
+
+// ReplaceViewers は削除と追加を 1 つのトランザクションで行い、閲覧者が一時的に空に見えないようにする。
+func (s *store) ReplaceViewers(ctx context.Context, id uuid.UUID, userIDs []string) error {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck // Commit 後の Rollback は何もしない
+
+	queries := s.queries.WithTx(tx)
+	if err := queries.DeleteRecipeViewers(ctx, id); err != nil {
+		return err
+	}
+	if err := queries.CreateRecipeViewers(ctx, gen.CreateRecipeViewersParams{
+		RecipeID: id,
+		UserIds:  userIDs,
+	}); err != nil {
+		return err
+	}
+
+	return tx.Commit(ctx)
 }

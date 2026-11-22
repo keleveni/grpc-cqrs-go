@@ -59,6 +59,10 @@ func (u *Command) CreateRecipe(
 		return nil, err
 	}
 
+	if err := u.refreshViewers(ctx, recipe); err != nil {
+		return nil, err
+	}
+
 	return recipe, nil
 }
 
@@ -120,7 +124,12 @@ func (u *Command) ChangeVisibility(
 
 	recipe.ChangeVisibility(v)
 
-	return u.storage.Update(ctx, recipe)
+	if err := u.storage.Update(ctx, recipe); err != nil {
+		return err
+	}
+
+	// 公開範囲が変わると閲覧できるユーザーも変わる
+	return u.refreshViewers(ctx, recipe)
 }
 
 // ShareRecipe はレシピを targetUserID に relation で共有する。共有できるのは owner だけ。
@@ -159,5 +168,24 @@ func (u *Command) ShareRecipe(
 		targetUserID,
 	)
 
-	return u.tuple.CreateTuple(ctx, tp)
+	if err := u.tuple.CreateTuple(ctx, tp); err != nil {
+		return err
+	}
+
+	// restricted なら共有相手が閲覧できるようになる
+	return u.refreshViewers(ctx, recipe)
+}
+
+// refreshViewers は読み取りモデル（recipe_viewers: 誰がレシピを閲覧できるか）を、
+// 今の公開範囲と tuple から計算し直して保存する（projection）。
+//
+// 閲覧者は公開範囲と tuple から決まるので、どちらかを変える書き込み
+// （作成・公開範囲の変更・共有）は必ずこれを呼ぶ。読み取り側はこの結果を引くだけで、閲覧のルールを持たない。
+func (u *Command) refreshViewers(ctx context.Context, recipe *entity.Recipe) error {
+	viewers, err := recipe.Viewers(ctx, u.checker)
+	if err != nil {
+		return err
+	}
+
+	return u.storage.ReplaceViewers(ctx, recipe.ID(), viewers)
 }

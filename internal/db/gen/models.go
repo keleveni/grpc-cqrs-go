@@ -65,6 +65,11 @@ type Recipe struct {
 	Visibility  Visibility
 }
 
+type RecipeViewer struct {
+	RecipeID uuid.UUID
+	UserID   string
+}
+
 type RelationTuple struct {
 	ID         uuid.UUID
 	ObjectType string

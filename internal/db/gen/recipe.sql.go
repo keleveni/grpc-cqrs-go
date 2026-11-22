@@ -36,6 +36,30 @@ func (q *Queries) CreateRecipe(ctx context.Context, arg CreateRecipeParams) erro
 	return err
 }
 
+const createRecipeViewers = `-- name: CreateRecipeViewers :exec
+INSERT INTO recipe_viewers (recipe_id, user_id)
+SELECT $1::uuid, unnest($2::text[])
+`
+
+type CreateRecipeViewersParams struct {
+	RecipeID uuid.UUID
+	UserIds  []string
+}
+
+func (q *Queries) CreateRecipeViewers(ctx context.Context, arg CreateRecipeViewersParams) error {
+	_, err := q.db.Exec(ctx, createRecipeViewers, arg.RecipeID, arg.UserIds)
+	return err
+}
+
+const deleteRecipeViewers = `-- name: DeleteRecipeViewers :exec
+DELETE FROM recipe_viewers WHERE recipe_id = $1
+`
+
+func (q *Queries) DeleteRecipeViewers(ctx context.Context, recipeID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteRecipeViewers, recipeID)
+	return err
+}
+
 const getRecipe = `-- name: GetRecipe :one
 SELECT id, user_id, title, description, visibility
 FROM recipes
@@ -63,15 +87,25 @@ func (q *Queries) GetRecipe(ctx context.Context, id uuid.UUID) (GetRecipeRow, er
 	return i, err
 }
 
-const getRecipeWithUser = `-- name: GetRecipeWithUser :one
+const getViewableRecipe = `-- name: GetViewableRecipe :one
+
 SELECT r.id, r.user_id, r.title, r.description, r.visibility, r.created_at, r.updated_at,
        u.name AS user_name, u.email AS user_email
 FROM recipes r
 JOIN users u ON r.user_id = u.id
 WHERE r.id = $1
+  AND EXISTS (
+    SELECT 1 FROM recipe_viewers v
+    WHERE v.recipe_id = r.id AND v.user_id = ANY($2::text[])
+  )
 `
 
-type GetRecipeWithUserRow struct {
+type GetViewableRecipeParams struct {
+	ID      uuid.UUID
+	UserIds []string
+}
+
+type GetViewableRecipeRow struct {
 	ID          uuid.UUID
 	UserID      string
 	Title       string
@@ -83,9 +117,14 @@ type GetRecipeWithUserRow struct {
 	UserEmail   string
 }
 
-func (q *Queries) GetRecipeWithUser(ctx context.Context, id uuid.UUID) (GetRecipeWithUserRow, error) {
-	row := q.db.QueryRow(ctx, getRecipeWithUser, id)
-	var i GetRecipeWithUserRow
+// 読み取り側は、書き込み側が計算した recipe_viewers（projection）を引くだけで、閲覧のルールは持たない。
+// user_ids には、ユーザー本人と「全員」（'*'。public のレシピの閲覧者）を渡す。
+// 閲覧できるときだけレシピと作成者を返す（存在しない・閲覧できないときは行なし）。
+// recipes.user_id は NOT NULL かつ users への外部キー（ON DELETE NO ACTION）なので、
+// INNER JOIN でレシピの行が落ちることはない。
+func (q *Queries) GetViewableRecipe(ctx context.Context, arg GetViewableRecipeParams) (GetViewableRecipeRow, error) {
+	row := q.db.QueryRow(ctx, getViewableRecipe, arg.ID, arg.UserIds)
+	var i GetViewableRecipeRow
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,

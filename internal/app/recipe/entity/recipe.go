@@ -54,3 +54,8 @@ func (r *Recipe) ChangeVisibility(v Visibility) {
 func (r *Recipe) CanBeEditedBy(ctx context.Context, rels Relations, userID string) error {
 	return r.visibility.CanEdit(ctx, rels, userID, r.id.String())
 }
+
+// Viewers はこのレシピを閲覧できるユーザーを返す（Visibility.Viewers に委ねる）。
+func (r *Recipe) Viewers(ctx context.Context, rels Relations) ([]string, error) {
+	return r.visibility.Viewers(ctx, rels, r.id.String())
+}

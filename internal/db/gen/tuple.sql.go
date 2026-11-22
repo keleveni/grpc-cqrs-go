@@ -82,3 +82,38 @@ func (q *Queries) ListRelations(ctx context.Context, arg ListRelationsParams) ([
 	}
 	return items, nil
 }
+
+const listUserIDsByRelations = `-- name: ListUserIDsByRelations :many
+SELECT DISTINCT user_id
+FROM relation_tuples
+WHERE object_type = $1
+  AND object_id = $2
+  AND relation = ANY($3::text[])
+`
+
+type ListUserIDsByRelationsParams struct {
+	ObjectType string
+	ObjectID   string
+	Relations  []string
+}
+
+// object_type の object_id に対して relations のいずれかを持つ user_id を返す（閲覧者の計算用）。
+func (q *Queries) ListUserIDsByRelations(ctx context.Context, arg ListUserIDsByRelationsParams) ([]string, error) {
+	rows, err := q.db.Query(ctx, listUserIDsByRelations, arg.ObjectType, arg.ObjectID, arg.Relations)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var user_id string
+		if err := rows.Scan(&user_id); err != nil {
+			return nil, err
+		}
+		items = append(items, user_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
